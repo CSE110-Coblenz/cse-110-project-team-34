@@ -1,0 +1,20 @@
+{
+  "name": "cse-110-project-team-34",
+  "version": "1.0.0",
+  "description": "We intend to make a fun, fast-paced geography-learning game geared towards high school students!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CSE110-Coblenz/cse-110-project-team-34.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CSE110-Coblenz/cse-110-project-team-34/issues"
+  },
+  "homepage": "https://github.com/CSE110-Coblenz/cse-110-project-team-34#readme"
+}
