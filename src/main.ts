@@ -42,6 +42,7 @@ class Main {
         this.layer.destroyChildren(); // Clear the layer
         const menuController = new MenuController({ switchToScreen: () => this.showGameScreen() }, this.stage);
         this.layer.add(menuController.getView().getGroup());
+        menuController.show(); // Show the menu
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
     }
