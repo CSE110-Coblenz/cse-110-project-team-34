@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/CSE110-Coblenz/cse-110-project-team-34/issues"
   },
-  "homepage": "https://github.com/CSE110-Coblenz/cse-110-project-team-34#readme"
+  "homepage": "https://github.com/CSE110-Coblenz/cse-110-project-team-34#readme",
+  "dependencies": {
+    "konva": "^10.0.8"
+  }
 }
