@@ -29,14 +29,14 @@ export function runSandbox(gameView: GameView): void {
     // Example 1: Change California to red
     const ca = gameView.getState('ca');
     if (ca) {
-        ca.color('pink');
+        ca.color('yellow');
         console.log('✓ California (ca): changed to red');
     }
     
     // Example 2: Mark Texas as guessed and make it blue
     const tx = gameView.getState('tx');
     if (tx) {
-        tx.color('blue').isGuessed(true);
+        tx.color('black').isGuessed(true);
         console.log('✓ Texas (tx): blue and marked as guessed');
     }
     
