@@ -13,6 +13,9 @@ class Main {
     stage: Konva.Stage;
     layer: Konva.Layer;
     currentScreen: GameScreen = GameScreen.Menu;
+    menuController: MenuController | null = null;
+    gameController: GameController | null = null;
+    resultsController: ResultsController | null = null;
 
     constructor() {
         const stageWidth = window.innerWidth;
@@ -39,26 +42,50 @@ class Main {
     }
 
     showMenuScreen() {
+        // Hide other screens
+        if (this.gameController) {
+            this.gameController.hide();
+        }
+        if (this.resultsController) {
+            this.resultsController.hide();
+        }
+        
         this.layer.destroyChildren(); // Clear the layer
-        const menuController = new MenuController({ switchToScreen: () => this.showGameScreen() }, this.stage);
+        this.menuController = new MenuController({ switchToScreen: () => this.showGameScreen() }, this.stage);
         // Don't add the group to this.layer - MenuView manages its own layers
-        menuController.show(); // Show the menu
+        this.menuController.show(); // Show the menu
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
     }
 
     showGameScreen() {
+        // Hide menu screen
+        if (this.menuController) {
+            this.menuController.hide();
+        }
+        if (this.resultsController) {
+            this.resultsController.hide();
+        }
+        
         this.layer.destroyChildren();
-        const gameController = new GameController({ switchToScreen: () => this.showResultsScreen() }, this.stage);
-        gameController.show();
+        this.gameController = new GameController({ switchToScreen: () => this.showResultsScreen() }, this.stage);
+        this.gameController.show();
         this.currentScreen = GameScreen.Game;
         this.layer.draw();
     }
 
     showResultsScreen() {
+        // Hide other screens
+        if (this.menuController) {
+            this.menuController.hide();
+        }
+        if (this.gameController) {
+            this.gameController.hide();
+        }
+        
         this.layer.destroyChildren();
-        const resultsController = new ResultsController({ switchToScreen: () => this.showMenuScreen() });
-        this.layer.add(resultsController.getView().getGroup());
+        this.resultsController = new ResultsController({ switchToScreen: () => this.showMenuScreen() });
+        this.layer.add(this.resultsController.getView().getGroup());
         this.currentScreen = GameScreen.Results;
         this.layer.draw();
     }
