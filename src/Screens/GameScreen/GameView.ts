@@ -60,6 +60,14 @@ export class State {
         this.element.style.opacity = '1';
         return this;
     }
+
+    // Set a new original color (accepts HEX, rgb, or named colors)
+    setOriginalColor(newColor: string): State {
+        this.originalColor = newColor;
+        this._currentColor = newColor;
+        this.element.setAttribute('fill', newColor);
+        return this;
+    }
 }
 
 // Export the class so ViewManager.ts can import it
@@ -146,6 +154,9 @@ export class GameView {
         // Clear existing states
         this.states.clear();
         
+        // Regular expression to match exactly 2 lowercase letters (state codes only)
+        const STATE_CODE_PATTERN = /^[a-z]{2}$/;
+        
         // Find all path elements (each state is typically a path)
         const paths = svg.querySelectorAll('path');
         console.log(`Found ${paths.length} path elements in SVG`);
@@ -157,23 +168,40 @@ export class GameView {
         
         paths.forEach((path, index) => {
             // Get state abbreviation from class attribute (e.g., "ca" for California)
-            const stateClass = path.getAttribute('class') || '';
+            const classAttr = path.getAttribute('class') || '';
             
-            if (stateClass) {
+            // Split class attribute in case multiple classes exist (e.g., "state ca")
+            const classTokens = classAttr.split(/\s+/).map(c => c.trim()).filter(Boolean);
+            
+            // Find the first token that matches the state code pattern (2 lowercase letters)
+            const stateCode = classTokens.find(token => STATE_CODE_PATTERN.test(token));
+            
+            if (stateCode) {
+                // Exclude DC (District of Columbia) - only include the 50 U.S. states
+                if (stateCode === 'dc') {
+                    console.log(`⚠️ Skipping DC (District of Columbia) - not a state`);
+                    return;
+                }
+                
+                // Skip if we've already parsed this state (handles multi-path states like Michigan)
+                if (this.states.has(stateCode)) {
+                    console.log(`⚠️ Duplicate state code "${stateCode}" found - using first occurrence`);
+                    return;
+                }
+                
                 // Get the original fill color
                 const computedStyle = window.getComputedStyle(path);
                 const originalColor = path.getAttribute('fill') || 
                                      computedStyle.fill || 
                                      '#cccccc';
                 
-                // Create State object using the class abbreviation
-                const state = new State(stateClass, path as SVGPathElement, originalColor);
-                this.states.set(stateClass, state);
+                // Create State object using the state code abbreviation
+                const state = new State(stateCode, path as SVGPathElement, originalColor);
+                this.states.set(stateCode, state);
                 
-                console.log(`✓ Parsed state: "${stateClass}" (color: ${originalColor})`);
-            } else {
-                console.warn(`⚠️ Path ${index} has no class attribute`);
+                console.log(`✓ Parsed state: "${stateCode}" (color: ${originalColor})`);
             }
+            // Silently skip non-state paths (borders, connectors, separators, etc.)
         });
         
         if (this.states.size === 0) {
@@ -202,6 +230,29 @@ export class GameView {
         this.states.forEach((state) => {
             state.reset();
         });
+    }
+
+    /**
+     * Set the original color for all states (accepts HEX, rgb, or named colors)
+     * This updates the originalColor property, so reset() will use this new color
+     * @param color - The color to set (e.g., "#ff0000", "rgb(255, 0, 0)", "red")
+     */
+    setAllStatesOriginalColor(color: string): void {
+        this.states.forEach((state) => {
+            state.setOriginalColor(color);
+        });
+        console.log(`✓ Set original color for all ${this.states.size} states to: ${color}`);
+    }
+
+    /**
+     * Set the current color for all states without changing their original color
+     * @param color - The color to set (e.g., "#ff0000", "rgb(255, 0, 0)", "red")
+     */
+    setAllStatesColor(color: string): void {
+        this.states.forEach((state) => {
+            state.color(color);
+        });
+        console.log(`✓ Set current color for all ${this.states.size} states to: ${color}`);
     }
 
     // show() method is required by ViewManager.ts

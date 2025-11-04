@@ -23,7 +23,7 @@ export function runSandbox(gameView: GameView): void {
     console.log('\n=== 🎮 SANDBOX MODE ACTIVATED ===\n');
     
     // ====================================
-    // YOUR TESTING AREA - MODIFY AS NEEDED
+    // TESTING AREA - MODIFY AS NEEDED
     // ====================================
     
     // Example 1: Change California to red

@@ -2,7 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 // Uncomment to enable sandbox testing
-import { runSandbox } from "./sandbox";
+// import { runSandbox } from "./sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;
@@ -19,13 +19,16 @@ export class GameController {
 			console.log('Map loaded successfully!');
 			console.log(`Total states found: ${this.view.getAllStates().size}`);
 			
+			// Set all states to light blue (#ADD8E6)
+			this.view.setAllStatesOriginalColor('#adeaffff');
+			
 			// Make gameView accessible globally for testing in console
 			(window as any).gameView = this.view;
 			console.log('💡 Access gameView in console: window.gameView');
 			console.log('💡 Example: window.gameView.getState("ca")?.color("red")');
 			
 			// SANDBOX MODE - Uncomment to run automated tests
-			runSandbox(this.view);
+			//runSandbox(this.view);
 		});
 	}
 
