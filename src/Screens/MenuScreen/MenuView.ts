@@ -5,6 +5,9 @@ export class MenuView {
 	// This group will hold all the visual elements of the menu
 	private group: Konva.Group;
 	private stage: Konva.Stage;
+	private backgroundLayer: Konva.Layer;
+	private contentLayer: Konva.Layer;
+	private backgroundImage: Konva.Image | null = null;
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -14,7 +17,20 @@ export class MenuView {
 	// The constructor receives the main stage from the App/ViewManager
 	constructor(stage: Konva.Stage) {
 		this.stage = stage;
+		
+		// Create background layer first (renders behind everything)
+		this.backgroundLayer = new Konva.Layer();
+		this.stage.add(this.backgroundLayer);
+		
+		// Load and add the background image
+		this.loadBackgroundImage();
+		
+		// Create content layer for buttons (renders on top of background)
+		this.contentLayer = new Konva.Layer();
+		this.stage.add(this.contentLayer);
+		
 		this.group = new Konva.Group();
+		this.contentLayer.add(this.group);
 
 		// Get the full screen dimensions from the stage
 		const width = this.stage.width();
@@ -27,6 +43,7 @@ export class MenuView {
 			y: 0,
 			width: sectionWidth,
 			height: height,
+			opacity: 0.5, // 50% opacity
 		});
 
 		const practiceRect = new Konva.Rect({
@@ -65,6 +82,7 @@ export class MenuView {
 			y: 0,
 			width: sectionWidth,
 			height: height,
+			opacity: 0.5, // 50% opacity
 		});
 
 		const classicRect = new Konva.Rect({
@@ -103,6 +121,7 @@ export class MenuView {
 			y: 0,
 			width: sectionWidth,
 			height: height,
+			opacity: 0.5, // 50% opacity
 		});
 
 		const crackedRect = new Konva.Rect({
@@ -145,6 +164,46 @@ export class MenuView {
 		// `practiceButton`, `classicButton`, and `crackedButton`.
 	}
 
+	/**
+	 * Load the background stone image
+	 */
+	private loadBackgroundImage(): void {
+		const imageObj = new Image();
+		imageObj.onload = () => {
+			// Create Konva image
+			this.backgroundImage = new Konva.Image({
+				image: imageObj,
+				x: 0,
+				y: 0,
+			});
+			
+			// Scale the image to fill the entire stage (stretch to corners)
+			const scaleX = this.stage.width() / imageObj.width;
+			const scaleY = this.stage.height() / imageObj.height;
+			
+			// Use independent scaling for width and height to fill the entire screen
+			this.backgroundImage.scaleX(scaleX);
+			this.backgroundImage.scaleY(scaleY);
+			
+			// Position at top-left corner (0, 0) - image will stretch to fill screen
+			this.backgroundImage.x(0);
+			this.backgroundImage.y(0);
+			
+			// Add to background layer
+			this.backgroundLayer.add(this.backgroundImage);
+			this.backgroundLayer.draw();
+			
+			console.log('✓ Background stone image loaded for menu');
+		};
+		
+		imageObj.onerror = () => {
+			console.error('❌ Failed to load menu background image');
+		};
+		
+		// Set the image source - use forward slashes for web paths
+		imageObj.src = '/Fantasy Wooden GUI stuff/PNG/UI board Large  stone.png';
+	}
+
 	// Method for the App/ViewManager to get this screen's elements
 	getGroup() {
 		return this.group;
@@ -152,11 +211,15 @@ export class MenuView {
 
 	// Method for the App/ViewManager to show this screen
 	show() {
+		this.backgroundLayer.show();
+		this.contentLayer.show();
 		this.group.show();
 	}
 
 	// Method for the App/ViewManager to hide this screen
 	hide() {
+		this.backgroundLayer.hide();
+		this.contentLayer.hide();
 		this.group.hide();
 	}
 }

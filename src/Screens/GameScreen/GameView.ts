@@ -74,13 +74,24 @@ export class State {
 export class GameView {
 
     private stage: Konva.Stage;
+    private backgroundLayer: Konva.Layer;
     private layer: Konva.Layer;
     private svgContainer: HTMLDivElement | null = null;
     private states: Map<string, State> = new Map(); // Map of state name to State objects
+    private backgroundImage: Konva.Image | null = null;
 
     // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage) {
         this.stage = stage;
+        
+        // Create background layer first (renders behind everything)
+        this.backgroundLayer = new Konva.Layer();
+        this.stage.add(this.backgroundLayer);
+        
+        // Load and add the background image
+        this.loadBackgroundImage();
+        
+        // Create main layer for other content
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
@@ -108,6 +119,46 @@ export class GameView {
         
         // Add to body
         document.body.appendChild(this.svgContainer);
+    }
+
+    /**
+     * Load the background parchment image
+     */
+    private loadBackgroundImage(): void {
+        const imageObj = new Image();
+        imageObj.onload = () => {
+            // Create Konva image
+            this.backgroundImage = new Konva.Image({
+                image: imageObj,
+                x: 0,
+                y: 0,
+            });
+            
+            // Scale the image to fill the entire stage (stretch to corners)
+            const scaleX = this.stage.width() / imageObj.width;
+            const scaleY = this.stage.height() / imageObj.height;
+            
+            // Use independent scaling for width and height to fill the entire screen
+            this.backgroundImage.scaleX(scaleX);
+            this.backgroundImage.scaleY(scaleY);
+            
+            // Position at top-left corner (0, 0) - image will stretch to fill screen
+            this.backgroundImage.x(0);
+            this.backgroundImage.y(0);
+            
+            // Add to background layer
+            this.backgroundLayer.add(this.backgroundImage);
+            this.backgroundLayer.draw();
+            
+            console.log('✓ Background parchment image loaded');
+        };
+        
+        imageObj.onerror = () => {
+            console.error('❌ Failed to load background image');
+        };
+        
+        // Set the image source - use forward slashes for web paths
+        imageObj.src = '/Fantasy Wooden GUI stuff/PNG/UI board Large  parchment.png';
     }
 
     /**
@@ -257,6 +308,7 @@ export class GameView {
 
     // show() method is required by ViewManager.ts
     show() {
+        this.backgroundLayer.show();
         this.layer.show();
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
@@ -265,6 +317,7 @@ export class GameView {
 
     // hide() method is required by ViewManager.ts
     hide() {
+        this.backgroundLayer.hide();
         this.layer.hide();
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
@@ -276,6 +329,7 @@ export class GameView {
             this.svgContainer.remove();
             this.svgContainer = null;
         }
+        this.backgroundLayer.destroy();
         this.layer.destroy();
     }
 }
