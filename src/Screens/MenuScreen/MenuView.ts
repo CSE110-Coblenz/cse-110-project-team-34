@@ -201,7 +201,7 @@ export class MenuView {
 		};
 		
 		// Set the image source - use forward slashes for web paths
-		imageObj.src = '/Fantasy Wooden GUI stuff/PNG/UI board Large  stone.png';
+		imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/1.png';
 	}
 
 	// Method for the App/ViewManager to get this screen's elements
