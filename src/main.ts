@@ -49,8 +49,8 @@ class Main {
 
     showGameScreen() {
         this.layer.destroyChildren();
-        const gameController = new GameController({ switchToScreen: () => this.showResultsScreen() });
-        this.layer.add(gameController.getView().getGroup());
+        const gameController = new GameController({ switchToScreen: () => this.showResultsScreen() }, this.stage);
+        gameController.show();
         this.currentScreen = GameScreen.Game;
         this.layer.draw();
     }
