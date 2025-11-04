@@ -21,15 +21,15 @@ export class MenuController {
         // The View will expose its buttons as properties.
         
         // Example (once you add the buttons to your MenuView):
-        // this.view.practiceButton.on('click', () => {
-        //     this.switcher.switchToScreen({ type: "game", mode: "practice" });
-        // });
-        // this.view.classicButton.on('click', () => {
-        //     this.switcher.switchToScreen({ type: "game", mode: "classic" });
-        // });
-        // this.view.crackedButton.on('click', () => {
-        //     this.switcher.switchToScreen({ type: "game", mode: "cracked" });
-        // });
+        this.view.practiceButton.on('click', () => {
+            this.switcher.switchToScreen({ type: "game", mode: "practice" });
+        });
+        this.view.classicButton.on('click', () => {
+            this.switcher.switchToScreen({ type: "game", mode: "classic" });
+        });
+        this.view.crackedButton.on('click', () => {
+            this.switcher.switchToScreen({ type: "game", mode: "cracked" });
+        });
     }
 
     // This method is required by main.ts.

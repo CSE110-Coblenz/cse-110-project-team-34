@@ -6,6 +6,11 @@ export class MenuView {
 	private group: Konva.Group;
 	private stage: Konva.Stage;
 
+	// Exposed button groups so the Controller can attach handlers
+	public practiceButton: Konva.Group;
+	public classicButton: Konva.Group;
+	public crackedButton: Konva.Group;
+
 	// The constructor receives the main stage from the App/ViewManager
 	constructor(stage: Konva.Stage) {
 		this.stage = stage;
@@ -17,22 +22,23 @@ export class MenuView {
 		const sectionWidth = width / 3;
 
 		// --- 1. Practice Section (Left) ---
-		const practiceGroup = new Konva.Group({
+		this.practiceButton = new Konva.Group({
 			x: 0,
 			y: 0,
 			width: sectionWidth,
 			height: height,
 		});
 
-		practiceGroup.add(new Konva.Rect({
+		const practiceRect = new Konva.Rect({
 			width: sectionWidth,
 			height: height,
 			fill: '#f0f0f0', // Light gray
 			stroke: 'black',
 			strokeWidth: 2,
-		}));
+		});
+		this.practiceButton.add(practiceRect);
 
-		practiceGroup.add(new Konva.Text({
+		this.practiceButton.add(new Konva.Text({
 			text: 'PRACTICE',
 			fontSize: 30,
 			fontStyle: 'bold',
@@ -43,23 +49,34 @@ export class MenuView {
 			fill: 'black',
 		}));
 
+		// Hover effect for practice button
+		this.practiceButton.on('mouseenter', () => {
+			practiceRect.fill('#d0d0d0');
+			document.body.style.cursor = 'pointer';
+		});
+		this.practiceButton.on('mouseleave', () => {
+			practiceRect.fill('#f0f0f0');
+			document.body.style.cursor = 'default';
+		});
+
 		// --- 2. Classic Section (Middle) ---
-		const classicGroup = new Konva.Group({
+		this.classicButton = new Konva.Group({
 			x: sectionWidth,
 			y: 0,
 			width: sectionWidth,
 			height: height,
 		});
 
-		classicGroup.add(new Konva.Rect({
+		const classicRect = new Konva.Rect({
 			width: sectionWidth,
 			height: height,
 			fill: '#e0e0e0', // Medium gray
 			stroke: 'black',
 			strokeWidth: 2,
-		}));
+		});
+		this.classicButton.add(classicRect);
 
-		classicGroup.add(new Konva.Text({
+		this.classicButton.add(new Konva.Text({
 			text: 'CLASSIC',
 			fontSize: 30,
 			fontStyle: 'bold',
@@ -70,23 +87,34 @@ export class MenuView {
 			fill: 'black',
 		}));
 
+		// Hover effect for classic button
+		this.classicButton.on('mouseenter', () => {
+			classicRect.fill('#c0c0c0');
+			document.body.style.cursor = 'pointer';
+		});
+		this.classicButton.on('mouseleave', () => {
+			classicRect.fill('#e0e0e0');
+			document.body.style.cursor = 'default';
+		});
+
 		// --- 3. Cracked Section (Right) ---
-		const crackedGroup = new Konva.Group({
+		this.crackedButton = new Konva.Group({
 			x: sectionWidth * 2,
 			y: 0,
 			width: sectionWidth,
 			height: height,
 		});
 
-		crackedGroup.add(new Konva.Rect({
+		const crackedRect = new Konva.Rect({
 			width: sectionWidth,
 			height: height,
 			fill: '#d0d0d0', // Darker gray
 			stroke: 'black',
 			strokeWidth: 2,
-		}));
+		});
+		this.crackedButton.add(crackedRect);
 
-		crackedGroup.add(new Konva.Text({
+		this.crackedButton.add(new Konva.Text({
 			text: 'CRACKED',
 			fontSize: 30,
 			fontStyle: 'bold',
@@ -97,19 +125,24 @@ export class MenuView {
 			fill: 'black',
 		}));
 
+		// Hover effect for cracked button
+		this.crackedButton.on('mouseenter', () => {
+			crackedRect.fill('#b0b0b0');
+			document.body.style.cursor = 'pointer';
+		});
+		this.crackedButton.on('mouseleave', () => {
+			crackedRect.fill('#d0d0d0');
+			document.body.style.cursor = 'default';
+		});
 		// Add all three sections to the main menu group
-		this.group.add(practiceGroup, classicGroup, crackedGroup);
+		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
 
 		// Start hidden by default, the App/ViewManager will show it
 		this.hide();
 
-		// TODO: Add event listeners here or in the MenuController
-		// Your MenuController will be responsible for what happens
-		// when these groups are clicked.
-		// Example:
-		// practiceGroup.on('click', () => {
-		//   console.log('Practice Mode Clicked');
-		// });
+		// NOTE: Event listeners are the Controller's responsibility.
+		// The Controller will attach .on('click', ...) handlers to
+		// `practiceButton`, `classicButton`, and `crackedButton`.
 	}
 
 	// Method for the App/ViewManager to get this screen's elements
