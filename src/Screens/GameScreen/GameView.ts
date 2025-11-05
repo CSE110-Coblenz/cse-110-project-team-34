@@ -1,4 +1,6 @@
 import Konva from 'konva';
+import { GameModel } from './GameModel';
+import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 
 // State class with chainable methods
 export class State {
@@ -80,15 +82,26 @@ export class GameView {
     private states: Map<string, State> = new Map(); // Map of state name to State objects
     private backgroundImage: Konva.Image | null = null;
     private overlayBackgroundImage: Konva.Image | null = null;
+    private leftSideImage: Konva.Image | null = null;
+    private belowOverlayImage: Konva.Image | null = null;
+    // Offset applied to overlay image and US map (base background stays fixed)
+    private overlayMapOffsetY: number = 0;
+    private overlayBaseX: number | null = null;
+    private overlayBaseY: number | null = null;
+    private model: GameModel;
 
     // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
-    constructor(stage: Konva.Stage) {
+    constructor(stage: Konva.Stage, model: GameModel) {
         this.stage = stage;
+        this.model = model;
         
         // Create background layer first (renders behind everything)
         this.backgroundLayer = new Konva.Layer();
         this.stage.add(this.backgroundLayer);
         
+    // Ensure custom 'Lief' font is available for any future text usage on Game screen
+    ensureLiefFontLoaded();
+
         // Load and add the background image
         this.loadBackgroundImage();
         
@@ -98,6 +111,9 @@ export class GameView {
 
         // Create a container for the SVG
         this.createSVGContainer();
+
+    // Apply initial vertical offset from the model (overlay + map only)
+    this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
     }
 
     /**
@@ -159,7 +175,7 @@ export class GameView {
         };
         
     // Set the image source - use forward slashes for web paths
-    imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/4.png';
+    imageObj.src = this.model.baseBackgroundSrc;
 
         // Load the overlay image that should sit above the base background
         const overlayObj = new Image();
@@ -173,17 +189,26 @@ export class GameView {
             });
 
             // Keep original (natural) size: do NOT stretch to stage
-            this.overlayBackgroundImage.scaleX(1.8);
-            this.overlayBackgroundImage.scaleY(1.5);
+            this.overlayBackgroundImage.scaleX(this.model.overlayScaleX);
+            this.overlayBackgroundImage.scaleY(this.model.overlayScaleY);
 
-            // Center the overlay based on its displayed size (natural width/height at scale 1)
-            const img = this.overlayBackgroundImage;
-            const displayedWidth = img.width() * img.scaleX();
-            const displayedHeight = img.height() * img.scaleY();
-            const centerX = (this.stage.width() - displayedWidth) / 2;
-            const centerY = (this.stage.height() - displayedHeight) / 2;
-            img.x(centerX);
-            img.y(centerY);
+            // Center the overlay if configured
+            if (this.model.centerOverlay) {
+                const img = this.overlayBackgroundImage;
+                const displayedWidth = img.width() * img.scaleX();
+                const displayedHeight = img.height() * img.scaleY();
+                const centerX = (this.stage.width() - displayedWidth) / 2;
+                const centerY = (this.stage.height() - displayedHeight) / 2;
+                img.x(centerX);
+                img.y(centerY);
+            }
+
+            // Record the base (centered) position to support offsetting without moving the base background
+            this.overlayBaseX = this.overlayBackgroundImage.x();
+            this.overlayBaseY = this.overlayBackgroundImage.y();
+
+            // Apply initial overlay/map offset now that base position is known
+            this.applyOverlayMapOffset();
 
             // Add AFTER base background so it sits on top of it but remains in the background layer
             this.backgroundLayer.add(this.overlayBackgroundImage);
@@ -197,7 +222,101 @@ export class GameView {
         };
 
         // Web-served path from /public
-        overlayObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Paper UI Pack/Plain/10 Calander/1.png';
+        overlayObj.src = this.model.overlayBackgroundSrc;
+
+        // Load the left-side image (rotated CCW 90 degrees) and position it on the left
+        const leftObj = new Image();
+        leftObj.onload = () => {
+            this.leftSideImage = new Konva.Image({
+                image: leftObj,
+                x: 0,
+                y: 0,
+            });
+
+            // Apply scaling
+            this.leftSideImage.scaleX(this.model.leftSideImageScaleX);
+            this.leftSideImage.scaleY(this.model.leftSideImageScaleY);
+
+            // Set rotation around the image center
+            const naturalW = leftObj.width;
+            const naturalH = leftObj.height;
+            this.leftSideImage.offsetX(naturalW / 2);
+            this.leftSideImage.offsetY(naturalH / 2);
+            this.leftSideImage.rotation(this.model.leftSideImageRotationDeg);
+
+            // Compute displayed size (pre-rotation) for positioning
+            const displayedW = naturalW * this.leftSideImage.scaleX();
+            const displayedH = naturalH * this.leftSideImage.scaleY();
+
+            // Position near the left edge, vertically centered, with configurable vertical offset
+            const x = this.model.leftSideImageMarginLeft + displayedW / 2;
+            const y = (this.stage.height() / 2) + (this.model.leftSideImageOffsetY || 0);
+            this.leftSideImage.x(x);
+            this.leftSideImage.y(y);
+
+            // Add after other backgrounds so it appears above base/overlay but still behind the SVG map
+            this.backgroundLayer.add(this.leftSideImage);
+            this.backgroundLayer.draw();
+
+            console.log('✓ Left-side image loaded and positioned');
+        };
+
+        leftObj.onerror = () => {
+            console.error('❌ Failed to load left-side image');
+        };
+
+        leftObj.src = this.model.leftSideImageSrc;
+
+        // Load image to be placed below the overlay (no rotation by default)
+        const belowObj = new Image();
+        belowObj.onload = () => {
+            this.belowOverlayImage = new Konva.Image({
+                image: belowObj,
+                x: 0,
+                y: 0,
+            });
+
+            // Apply scaling from model
+            this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
+            this.belowOverlayImage.scaleY(this.model.belowOverlayImageScaleY);
+
+            // Position relative to the overlay
+            this.updateBelowOverlayPosition();
+
+            // Add after base/overlay so it remains behind the SVG map
+            this.backgroundLayer.add(this.belowOverlayImage);
+            this.backgroundLayer.draw();
+
+            console.log('✓ Below-overlay image loaded and positioned');
+        };
+
+        belowObj.onerror = () => {
+            console.error('❌ Failed to load below-overlay image');
+        };
+
+        belowObj.src = this.model.belowOverlayImageSrc;
+    }
+
+    /** Keep the belowOverlayImage positioned under the overlay, centered horizontally. */
+    private updateBelowOverlayPosition(): void {
+        if (!this.overlayBackgroundImage || !this.belowOverlayImage) return;
+        const overlay = this.overlayBackgroundImage;
+        const below = this.belowOverlayImage;
+
+        const overlayDisplayedW = overlay.width() * overlay.scaleX();
+        const overlayDisplayedH = overlay.height() * overlay.scaleY();
+        const belowDisplayedW = below.width() * below.scaleX();
+
+        // Overlay top-left
+        const overlayLeft = overlay.x();
+        const overlayTop = overlay.y();
+        const overlayCenterX = overlayLeft + overlayDisplayedW / 2;
+
+        // Center the below image horizontally with the overlay, place below with margin
+        const x = overlayCenterX - belowDisplayedW / 2;
+        const y = overlayTop + overlayDisplayedH + this.model.belowOverlayMarginTop;
+        below.x(x);
+        below.y(y);
     }
 
     /**
@@ -343,6 +462,53 @@ export class GameView {
             state.color(color);
         });
         console.log(`✓ Set current color for all ${this.states.size} states to: ${color}`);
+    }
+
+    /**
+     * Move overlay image and US SVG together by a vertical offset.
+     * Base background remains fixed. Positive moves down, negative moves up.
+     */
+    setOverlayMapOffsetY(offsetY: number): void {
+        this.overlayMapOffsetY = offsetY;
+        this.applyOverlayMapOffset();
+    }
+
+    /** Apply the current overlayMapOffsetY to overlay image and US map. */
+    private applyOverlayMapOffset(): void {
+        // Move overlay relative to its base position
+        if (this.overlayBackgroundImage != null) {
+            // Establish base if not already captured
+            if (this.overlayBaseY == null) {
+                this.overlayBaseX = this.overlayBackgroundImage.x();
+                this.overlayBaseY = this.overlayBackgroundImage.y();
+            }
+            const baseY = this.overlayBaseY ?? 0;
+            const baseX = this.overlayBaseX ?? this.overlayBackgroundImage.x();
+            this.overlayBackgroundImage.x(baseX);
+            this.overlayBackgroundImage.y(baseY + this.overlayMapOffsetY);
+            this.backgroundLayer.batchDraw();
+        }
+
+        // Reposition the image that sits below the overlay whenever overlay moves
+        this.updateBelowOverlayPosition();
+
+        // Move the SVG container by the same amount
+        if (this.svgContainer) {
+            this.svgContainer.style.transform = `translate(0px, ${this.overlayMapOffsetY}px)`;
+        }
+    }
+
+    /**
+     * Move the left-side image up/down independently of the overlay/map.
+     * Positive moves down, negative moves up.
+     */
+    setLeftSideImageOffsetY(offsetY: number): void {
+        this.model.leftSideImageOffsetY = offsetY;
+        if (this.leftSideImage) {
+            const y = (this.stage.height() / 2) + (this.model.leftSideImageOffsetY || 0);
+            this.leftSideImage.y(y);
+            this.backgroundLayer.batchDraw();
+        }
     }
 
     // show() method is required by ViewManager.ts

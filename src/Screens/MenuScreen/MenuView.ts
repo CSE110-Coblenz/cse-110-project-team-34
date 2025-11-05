@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ensureLiefFontLoaded, waitForFontsReady } from '../../utils/FontLoader';
 
 // Export the class so main.ts (or ViewManager.ts) can import it
 export class MenuView {
@@ -18,6 +19,9 @@ export class MenuView {
 	// The constructor receives the main stage from the App/ViewManager
 	constructor(stage: Konva.Stage) {
 		this.stage = stage;
+
+		// Ensure the custom 'Lief' font is registered early
+		ensureLiefFontLoaded();
 		
 		// Create background layer first (renders behind everything)
 		this.backgroundLayer = new Konva.Layer();
@@ -64,6 +68,7 @@ export class MenuView {
 		this.practiceButton.add(new Konva.Text({
 			text: 'PRACTICE',
 			fontSize: 24,
+			fontFamily: 'Lief',
 			fontStyle: 'bold',
 			x: practiceRect.x(),
 			y: practiceRect.y(),
@@ -110,6 +115,7 @@ export class MenuView {
 		this.classicButton.add(new Konva.Text({
 			text: 'CLASSIC',
 			fontSize: 24,
+			fontFamily: 'Lief',
 			fontStyle: 'bold',
 			x: classicRect.x(),
 			y: classicRect.y(),
@@ -156,6 +162,7 @@ export class MenuView {
 		this.crackedButton.add(new Konva.Text({
 			text: 'CRACKED',
 			fontSize: 24,
+			fontFamily: 'Lief',
 			fontStyle: 'bold',
 			x: crackedRect.x(),
 			y: crackedRect.y(),
@@ -178,12 +185,28 @@ export class MenuView {
 		// Add all three sections to the main menu group
 		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
 
+		// Minimal: add a single text label using the custom 'Lief' font
+		const sampleText = new Konva.Text({
+			text: 'STATE OF PANIC',
+			fontFamily: 'Lief',
+			fontSize: 36,
+			fill: 'yellow',
+			x: 0,
+			y: 20,
+			width: width,
+			align: 'center',
+		});
+		this.contentLayer.add(sampleText);
+		this.contentLayer.draw();
+
 		// Start hidden by default, the App/ViewManager will show it
 		this.hide();
 
-		// NOTE: Event listeners are the Controller's responsibility.
-		// The Controller will attach .on('click', ...) handlers to
-		// `practiceButton`, `classicButton`, and `crackedButton`.
+		// Redraw text after fonts are ready so custom font renders if used
+		waitForFontsReady().then(() => {
+			this.contentLayer.batchDraw();
+		});
+
 	}
 
 	/**

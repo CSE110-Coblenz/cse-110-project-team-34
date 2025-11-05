@@ -1,18 +1,21 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
+import { GameModel } from "./GameModel";
 // Uncomment to enable sandbox testing
 // import { runSandbox } from "./sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;
 	private view: GameView;
+	private model: GameModel;
 
 	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
-		this.screenSwitcher = screenSwitcher;
-		
-		// Create the view
-		this.view = new GameView(stage);
+	this.screenSwitcher = screenSwitcher;
+
+	// Create the Model and View
+	this.model = new GameModel();
+	this.view = new GameView(stage, this.model);
 		
 		// Load the US map
 		this.view.loadMap('/Blank_US_Map_(states_only).svg').then(() => {
