@@ -79,6 +79,7 @@ export class GameView {
     private svgContainer: HTMLDivElement | null = null;
     private states: Map<string, State> = new Map(); // Map of state name to State objects
     private backgroundImage: Konva.Image | null = null;
+    private overlayBackgroundImage: Konva.Image | null = null;
 
     // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage) {
@@ -157,8 +158,41 @@ export class GameView {
             console.error('❌ Failed to load background image');
         };
         
-        // Set the image source - use forward slashes for web paths
-        imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/5.png';
+    // Set the image source - use forward slashes for web paths
+    imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/4.png';
+
+        // Load the overlay image that should sit above the base background
+        const overlayObj = new Image();
+        overlayObj.onload = () => {
+            this.overlayBackgroundImage = new Konva.Image({
+                image: overlayObj,
+                x: 0,
+                y: 0,
+                // Optional: adjust opacity if needed
+                // opacity: 0.85,
+            });
+
+            // Scale to fill stage (stretch to corners like base)
+            const scaleX = this.stage.width() / overlayObj.width;
+            const scaleY = this.stage.height() / overlayObj.height;
+            this.overlayBackgroundImage.scaleX(scaleX);
+            this.overlayBackgroundImage.scaleY(scaleY);
+            this.overlayBackgroundImage.x(0);
+            this.overlayBackgroundImage.y(0);
+
+            // Add AFTER base background so it sits on top of it but remains in the background layer
+            this.backgroundLayer.add(this.overlayBackgroundImage);
+            this.backgroundLayer.draw();
+
+            console.log('✓ Game overlay background image loaded');
+        };
+
+        overlayObj.onerror = () => {
+            console.error('❌ Failed to load game overlay background image');
+        };
+
+        // Web-served path from /public
+        overlayObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Paper UI Pack/Plain/10 Calander/1.png';
     }
 
     /**

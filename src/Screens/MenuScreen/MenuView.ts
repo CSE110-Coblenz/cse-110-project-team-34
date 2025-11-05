@@ -8,6 +8,7 @@ export class MenuView {
 	private backgroundLayer: Konva.Layer;
 	private contentLayer: Konva.Layer;
 	private backgroundImage: Konva.Image | null = null;
+	private overlayBackgroundImage: Konva.Image | null = null;
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -45,22 +46,29 @@ export class MenuView {
 			height: height,
 			opacity: 0.5, // 50% opacity
 		});
-
+		// Make the visible button half the size of the section and center it
+		const practiceRectWidth = sectionWidth * 0.5;
+		const practiceRectHeight = height * 0.5;
 		const practiceRect = new Konva.Rect({
-			width: sectionWidth,
-			height: height,
+			x: (sectionWidth - practiceRectWidth) / 2,
+			y: (height - practiceRectHeight) / 2,
+			width: practiceRectWidth,
+			height: practiceRectHeight,
 			fill: '#f0f0f0', // Light gray
 			stroke: 'black',
 			strokeWidth: 2,
+			cornerRadius: 8,
 		});
 		this.practiceButton.add(practiceRect);
 
 		this.practiceButton.add(new Konva.Text({
 			text: 'PRACTICE',
-			fontSize: 30,
+			fontSize: 24,
 			fontStyle: 'bold',
-			width: sectionWidth,
-			height: height,
+			x: practiceRect.x(),
+			y: practiceRect.y(),
+			width: practiceRectWidth,
+			height: practiceRectHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
@@ -85,21 +93,28 @@ export class MenuView {
 			opacity: 0.5, // 50% opacity
 		});
 
+		const classicRectWidth = sectionWidth * 0.5;
+		const classicRectHeight = height * 0.5;
 		const classicRect = new Konva.Rect({
-			width: sectionWidth,
-			height: height,
+			x: (sectionWidth - classicRectWidth) / 2,
+			y: (height - classicRectHeight) / 2,
+			width: classicRectWidth,
+			height: classicRectHeight,
 			fill: '#e0e0e0', // Medium gray
 			stroke: 'black',
 			strokeWidth: 2,
+			cornerRadius: 8,
 		});
 		this.classicButton.add(classicRect);
 
 		this.classicButton.add(new Konva.Text({
 			text: 'CLASSIC',
-			fontSize: 30,
+			fontSize: 24,
 			fontStyle: 'bold',
-			width: sectionWidth,
-			height: height,
+			x: classicRect.x(),
+			y: classicRect.y(),
+			width: classicRectWidth,
+			height: classicRectHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
@@ -124,21 +139,28 @@ export class MenuView {
 			opacity: 0.5, // 50% opacity
 		});
 
+		const crackedRectWidth = sectionWidth * 0.5;
+		const crackedRectHeight = height * 0.5;
 		const crackedRect = new Konva.Rect({
-			width: sectionWidth,
-			height: height,
+			x: (sectionWidth - crackedRectWidth) / 2,
+			y: (height - crackedRectHeight) / 2,
+			width: crackedRectWidth,
+			height: crackedRectHeight,
 			fill: '#d0d0d0', // Darker gray
 			stroke: 'black',
 			strokeWidth: 2,
+			cornerRadius: 8,
 		});
 		this.crackedButton.add(crackedRect);
 
 		this.crackedButton.add(new Konva.Text({
 			text: 'CRACKED',
-			fontSize: 30,
+			fontSize: 24,
 			fontStyle: 'bold',
-			width: sectionWidth,
-			height: height,
+			x: crackedRect.x(),
+			y: crackedRect.y(),
+			width: crackedRectWidth,
+			height: crackedRectHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
@@ -200,8 +222,39 @@ export class MenuView {
 			console.error('❌ Failed to load menu background image');
 		};
 		
-		// Set the image source - use forward slashes for web paths
+		// Set the image source - use forward slashes for web paths (served from /public)
 		imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/1.png';
+
+		// Load the secondary background overlay that appears above the base background
+		const overlayObj = new Image();
+		overlayObj.onload = () => {
+			this.overlayBackgroundImage = new Konva.Image({
+				image: overlayObj,
+				x: 0,
+				y: 0,
+			});
+
+			// Scale overlay to fill the entire stage
+			const overlayScaleX = this.stage.width() / overlayObj.width;
+			const overlayScaleY = this.stage.height() / overlayObj.height;
+			this.overlayBackgroundImage.scaleX(overlayScaleX);
+			this.overlayBackgroundImage.scaleY(overlayScaleY);
+			this.overlayBackgroundImage.x(0);
+			this.overlayBackgroundImage.y(0);
+
+			// Add AFTER the base background so it sits on top of it but remains in the background layer
+			this.backgroundLayer.add(this.overlayBackgroundImage);
+			this.backgroundLayer.draw();
+
+			console.log('✓ Menu overlay background image loaded');
+		};
+
+		overlayObj.onerror = () => {
+			console.error('❌ Failed to load menu overlay background image');
+		};
+
+		// Web-served path from /public to the provided book.png
+		overlayObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/book.png';
 	}
 
 	// Method for the App/ViewManager to get this screen's elements
