@@ -172,13 +172,18 @@ export class GameView {
                 // opacity: 0.85,
             });
 
-            // Scale to fill stage (stretch to corners like base)
-            const scaleX = this.stage.width() / overlayObj.width;
-            const scaleY = this.stage.height() / overlayObj.height;
-            this.overlayBackgroundImage.scaleX(scaleX);
-            this.overlayBackgroundImage.scaleY(scaleY);
-            this.overlayBackgroundImage.x(0);
-            this.overlayBackgroundImage.y(0);
+            // Keep original (natural) size: do NOT stretch to stage
+            this.overlayBackgroundImage.scaleX(1.8);
+            this.overlayBackgroundImage.scaleY(1.5);
+
+            // Center the overlay based on its displayed size (natural width/height at scale 1)
+            const img = this.overlayBackgroundImage;
+            const displayedWidth = img.width() * img.scaleX();
+            const displayedHeight = img.height() * img.scaleY();
+            const centerX = (this.stage.width() - displayedWidth) / 2;
+            const centerY = (this.stage.height() - displayedHeight) / 2;
+            img.x(centerX);
+            img.y(centerY);
 
             // Add AFTER base background so it sits on top of it but remains in the background layer
             this.backgroundLayer.add(this.overlayBackgroundImage);
