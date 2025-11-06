@@ -386,9 +386,11 @@ export class GameView {
             const stateCode = classTokens.find(token => STATE_CODE_PATTERN.test(token));
             
             if (stateCode) {
-                // Exclude DC (District of Columbia) - only include the 50 U.S. states
+                // Exclude DC (District of Columbia) to render only the 50 U.S. states.
+                // Note: The SVG's .dccircle visibility is handled via CSS; this check is independent
+                // and only ensures DC is not treated as a "state" in game logic.
                 if (stateCode === 'dc') {
-                    console.log(`⚠️ Skipping DC (District of Columbia) - not a state`);
+                    // Silently skip DC
                     return;
                 }
                 
