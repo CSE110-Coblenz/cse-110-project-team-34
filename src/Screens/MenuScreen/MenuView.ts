@@ -14,6 +14,8 @@ export class MenuView {
 	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
 	private chingSound: HTMLAudioElement; // Preloaded audio
+	private backgroundMusic: HTMLAudioElement; // Looping background music
+	private introVoice: HTMLAudioElement; // Intro voice audio
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -27,6 +29,15 @@ export class MenuView {
 		// Preload ching sound audio
 		this.chingSound = new Audio('/audio/ching sound.mp3');
 		this.chingSound.preload = 'auto';
+		
+		// Preload background music
+		this.backgroundMusic = new Audio('/audio/phonk-music-349676.mp3');
+		this.backgroundMusic.preload = 'auto';
+		this.backgroundMusic.loop = true; // Loop continuously
+		
+		// Preload intro voice
+		this.introVoice = new Audio('/audio/intro voice.m4a');
+		this.introVoice.preload = 'auto';
 
 		// Ensure the custom fonts are registered early
 		ensureLiefFontLoaded();
@@ -128,8 +139,10 @@ export class MenuView {
 			startButton.destroy();
 			this.overlayLayer.draw();
 			
-			// Start the animation sequence
-			this.startAnimationSequence(blackScreen, width, height, stateText, ofText, panicText, stateTween, ofTween, panicTween);
+			// Wait 1 second before starting the animation sequence
+			setTimeout(() => {
+				this.startAnimationSequence(blackScreen, width, height, stateText, ofText, panicText, stateTween, ofTween, panicTween);
+			}, 500);
 		});
 
 		// --- Create stacked buttons (vertical layout) ---
@@ -392,6 +405,10 @@ export class MenuView {
 	): void {
 		// Play animations in sequence with 1.0s delay between each
 		waitForFontsReady().then(() => {
+			// Play intro voice when animation starts
+			this.introVoice.currentTime = 0;
+			this.introVoice.play();
+			
 			// Text animations
 			stateTween.play();
 			setTimeout(() => ofTween.play(), 1000);    // OF starts 1.0s after STATE
@@ -406,6 +423,10 @@ export class MenuView {
 				// Play ching sound effect (use preloaded audio - no need to catch, user clicked so it will work)
 				this.chingSound.currentTime = 0; // Reset to start
 				this.chingSound.play();
+				
+				// Start looping background music
+				this.backgroundMusic.currentTime = 0;
+				this.backgroundMusic.play();
 				
 				// Create white screen overlay
 				const whiteScreen = new Konva.Rect({
@@ -465,6 +486,34 @@ export class MenuView {
 			// Add to background layer (at the bottom)
 			this.backgroundLayer.add(baseBackground);
 			baseBackground.moveToBottom();
+			
+			// Create dramatic vignette effect (dark edges, lighter center)
+			const stageWidth = this.stage.width();
+			const stageHeight = this.stage.height();
+			const vignetteCenterX = stageWidth / 2;
+			const vignetteCenterY = stageHeight / 2;
+			
+			// Calculate radius to reach corners (diagonal distance)
+			const vignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY);
+			
+			const vignette = new Konva.Rect({
+				x: 0,
+				y: 0,
+				width: stageWidth,
+				height: stageHeight,
+				fillRadialGradientStartPoint: { x: vignetteCenterX, y: vignetteCenterY },
+				fillRadialGradientStartRadius: 0,
+				fillRadialGradientEndPoint: { x: vignetteCenterX, y: vignetteCenterY },
+				fillRadialGradientEndRadius: vignetteRadius,
+				fillRadialGradientColorStops: [
+					0, 'rgba(0, 0, 0, 0)',      // Transparent at center
+					0.5, 'rgba(0, 0, 0, 0.3)',  // Slight darkening midway
+					0.8, 'rgba(0, 0, 0, 0.7)',  // Heavy darkening
+					1, 'rgba(0, 0, 0, 0.9)'     // Very dark at edges/corners
+				]
+			});
+			
+			this.backgroundLayer.add(vignette);
 			this.backgroundLayer.draw();
 			
 			console.log('✓ Base background image loaded for menu');
@@ -563,5 +612,13 @@ export class MenuView {
 		if (this.overlayGifElement) {
 			this.overlayGifElement.style.display = 'none';
 		}
+		// Stop background music when hiding the menu
+		this.stopMusic();
+	}
+	
+	// Method to stop the background music (called when transitioning to game screen)
+	public stopMusic() {
+		this.backgroundMusic.pause();
+		this.backgroundMusic.currentTime = 0;
 	}
 }
