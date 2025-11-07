@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { ensureLiefFontLoaded, ensureKa1FontLoaded, waitForFontsReady } from '../../utils/FontLoader';
+import { ensureLiefFontLoaded, ensureKa1FontLoaded, ensureDungeonFontLoaded, waitForFontsReady } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
 
 // Export the class so main.ts (or ViewManager.ts) can import it
@@ -25,6 +25,7 @@ export class MenuView {
 		// Ensure the custom fonts are registered early
 		ensureLiefFontLoaded();
 		ensureKa1FontLoaded();
+		ensureDungeonFontLoaded();
 		
 		// Create background layer first (renders behind everything)
 		this.backgroundLayer = new Konva.Layer();
@@ -50,44 +51,43 @@ export class MenuView {
 		// Get the full screen dimensions from the stage
 		const width = this.stage.width();
 		const height = this.stage.height();
-		const sectionWidth = width / 3;
 
-		// --- 1. Practice Section (Left) ---
+		// --- Create stacked buttons (vertical layout) ---
+		const buttonWidth = 300;
+		const buttonHeight = 80;
+		const buttonSpacing = 60;
+		
+		// --- 1. Practice Button (Top) ---
 		this.practiceButton = new Konva.Group({
 			x: 0,
 			y: 0,
-			width: sectionWidth,
-			height: height,
-			opacity: 0.5, // 50% opacity
 		});
-		// Make the visible button half the size of the section and center it
-		const practiceRectWidth = sectionWidth * 0.5;
-		const practiceRectHeight = height * 0.5;
+		
 		const practiceRect = new Konva.Rect({
-			x: (sectionWidth - practiceRectWidth) / 2,
-			y: (height - practiceRectHeight) / 2,
-			width: practiceRectWidth,
-			height: practiceRectHeight,
-			fill: '#f0f0f0', // Light gray
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
+			fill: '#f0f0f0',
 			stroke: 'black',
 			strokeWidth: 2,
 			cornerRadius: 8,
 		});
 		this.practiceButton.add(practiceRect);
 
-		this.practiceButton.add(new Konva.Text({
+		const practiceText = new Konva.Text({
 			text: 'PRACTICE',
 			fontSize: 24,
-			fontFamily: 'Lief',
-			fontStyle: 'bold',
-			x: practiceRect.x(),
-			y: practiceRect.y(),
-			width: practiceRectWidth,
-			height: practiceRectHeight,
+			fontFamily: 'DungeonFont',
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
-		}));
+		});
+		this.practiceButton.add(practiceText);
 
 		// Hover effect for practice button
 		this.practiceButton.on('mouseenter', () => {
@@ -99,42 +99,37 @@ export class MenuView {
 			document.body.style.cursor = 'default';
 		});
 
-		// --- 2. Classic Section (Middle) ---
+		// --- 2. Classic Button (Middle) ---
 		this.classicButton = new Konva.Group({
-			x: sectionWidth,
-			y: 0,
-			width: sectionWidth,
-			height: height,
-			opacity: 0.5, // 50% opacity
+			x: 0,
+			y: buttonHeight + buttonSpacing,
 		});
 
-		const classicRectWidth = sectionWidth * 0.5;
-		const classicRectHeight = height * 0.5;
 		const classicRect = new Konva.Rect({
-			x: (sectionWidth - classicRectWidth) / 2,
-			y: (height - classicRectHeight) / 2,
-			width: classicRectWidth,
-			height: classicRectHeight,
-			fill: '#e0e0e0', // Medium gray
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
+			fill: '#e0e0e0',
 			stroke: 'black',
 			strokeWidth: 2,
 			cornerRadius: 8,
 		});
 		this.classicButton.add(classicRect);
 
-		this.classicButton.add(new Konva.Text({
+		const classicText = new Konva.Text({
 			text: 'CLASSIC',
 			fontSize: 24,
-			fontFamily: 'Lief',
-			fontStyle: 'bold',
-			x: classicRect.x(),
-			y: classicRect.y(),
-			width: classicRectWidth,
-			height: classicRectHeight,
+			fontFamily: 'DungeonFont',
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
-		}));
+		});
+		this.classicButton.add(classicText);
 
 		// Hover effect for classic button
 		this.classicButton.on('mouseenter', () => {
@@ -146,42 +141,37 @@ export class MenuView {
 			document.body.style.cursor = 'default';
 		});
 
-		// --- 3. Cracked Section (Right) ---
+		// --- 3. Cracked Button (Bottom) ---
 		this.crackedButton = new Konva.Group({
-			x: sectionWidth * 2,
-			y: 0,
-			width: sectionWidth,
-			height: height,
-			opacity: 0.5, // 50% opacity
+			x: 0,
+			y: (buttonHeight + buttonSpacing) * 2,
 		});
 
-		const crackedRectWidth = sectionWidth * 0.5;
-		const crackedRectHeight = height * 0.5;
 		const crackedRect = new Konva.Rect({
-			x: (sectionWidth - crackedRectWidth) / 2,
-			y: (height - crackedRectHeight) / 2,
-			width: crackedRectWidth,
-			height: crackedRectHeight,
-			fill: '#d0d0d0', // Darker gray
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
+			fill: '#d0d0d0',
 			stroke: 'black',
 			strokeWidth: 2,
 			cornerRadius: 8,
 		});
 		this.crackedButton.add(crackedRect);
 
-		this.crackedButton.add(new Konva.Text({
+		const crackedText = new Konva.Text({
 			text: 'CRACKED',
 			fontSize: 24,
-			fontFamily: 'Lief',
-			fontStyle: 'bold',
-			x: crackedRect.x(),
-			y: crackedRect.y(),
-			width: crackedRectWidth,
-			height: crackedRectHeight,
+			fontFamily: 'DungeonFont',
+			x: 0,
+			y: 0,
+			width: buttonWidth,
+			height: buttonHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: 'black',
-		}));
+		});
+		this.crackedButton.add(crackedText);
 
 		// Hover effect for cracked button
 		this.crackedButton.on('mouseenter', () => {
@@ -192,8 +182,13 @@ export class MenuView {
 			crackedRect.fill('#d0d0d0');
 			document.body.style.cursor = 'default';
 		});
-		// Add all three sections to the main menu group
+		
+		// Add all three buttons to the main menu group (they're now in a vertical stack)
 		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
+		
+		// Position the button group (all buttons move together)
+		this.group.x(((width - buttonWidth) / 2) - 250);  // Center horizontally
+		this.group.y((height / 2) - 200);  // Center vertically (adjust as needed)
 
 		// Add title text using the Ka1 font - "OF" centered, with manual positioning for STATE and PANIC
 		const titleY = 20;
@@ -296,11 +291,11 @@ export class MenuView {
 			easing: Konva.Easings.EaseOut,
 		});
 		
-		// Play animations in sequence with 0.5s delay between each
+		// Play animations in sequence with 1.0s delay between each
 		waitForFontsReady().then(() => {
 			stateTween.play();
-			setTimeout(() => ofTween.play(), 500);     // OF starts 0.5s after STATE
-			setTimeout(() => panicTween.play(), 1000); // PANIC starts 0.5s after OF
+			setTimeout(() => ofTween.play(), 1000);    // OF starts 1.0s after STATE
+			setTimeout(() => panicTween.play(), 2000); // PANIC starts 1.0s after OF
 		});
 
 		// Start hidden by default, the App/ViewManager will show it
