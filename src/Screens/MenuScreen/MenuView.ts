@@ -583,7 +583,7 @@ export class MenuView {
 		
 		const vignetteCenterX = width / 2;
 		const vignetteCenterY = height / 2;
-		const finalVignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY);
+		const finalVignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY) * 0.7;
 		
 		// Animate the radial gradient end radius from large to normal
 		const vignetteTween = new Konva.Tween({
