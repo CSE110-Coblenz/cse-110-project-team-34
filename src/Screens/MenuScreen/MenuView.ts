@@ -13,6 +13,7 @@ export class MenuView {
 	private backgroundImage: Konva.Image | null = null;
 	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
+	private chingSound: HTMLAudioElement; // Preloaded audio
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -22,6 +23,10 @@ export class MenuView {
 	// The constructor receives the main stage from the App/ViewManager
 	constructor(stage: Konva.Stage) {
 		this.stage = stage;
+
+		// Preload ching sound audio
+		this.chingSound = new Audio('/audio/ching sound.mp3');
+		this.chingSound.preload = 'auto';
 
 		// Ensure the custom fonts are registered early
 		ensureLiefFontLoaded();
@@ -69,7 +74,63 @@ export class MenuView {
 			opacity: 1,
 		});
 		this.overlayLayer.add(blackScreen);
+		
+		// Create "START" button on black screen
+		const startButtonWidth = 200;
+		const startButtonHeight = 80;
+		const startButton = new Konva.Group({
+			x: (width - startButtonWidth) / 2,
+			y: (height - startButtonHeight) / 2,
+		});
+		
+		const startButtonRect = new Konva.Rect({
+			x: 0,
+			y: 0,
+			width: startButtonWidth,
+			height: startButtonHeight,
+			fill: '#ffffff',
+			stroke: '#000000',
+			strokeWidth: 3,
+			cornerRadius: 10,
+		});
+		startButton.add(startButtonRect);
+		
+		const startButtonText = new Konva.Text({
+			text: 'START',
+			fontSize: 48,
+			fontFamily: 'DungeonFont',
+			x: 0,
+			y: 0,
+			width: startButtonWidth,
+			height: startButtonHeight,
+			align: 'center',
+			verticalAlign: 'middle',
+			fill: '#000000',
+		});
+		startButton.add(startButtonText);
+		
+		// Add hover effects
+		startButton.on('mouseenter', () => {
+			startButtonRect.fill('#e0e0e0');
+			document.body.style.cursor = 'pointer';
+		});
+		startButton.on('mouseleave', () => {
+			startButtonRect.fill('#ffffff');
+			document.body.style.cursor = 'default';
+		});
+		
+		this.overlayLayer.add(startButton);
 		this.overlayLayer.draw();
+		
+		// Click handler for start button - triggers all animations
+		startButton.on('click', () => {
+			// Remove start button immediately
+			startButton.destroy();
+			this.overlayLayer.draw();
+			
+			// Start the animation sequence
+			this.startAnimationSequence(blackScreen, width, height, stateText, ofText, panicText, stateTween, ofTween, panicTween);
+		});
 
 		// --- Create stacked buttons (vertical layout) ---
 		const buttonWidth = 300;
@@ -310,6 +371,25 @@ export class MenuView {
 			easing: Konva.Easings.EaseOut,
 		});
 		
+		// Start hidden by default, the App/ViewManager will show it
+		this.hide();
+
+	}
+	
+	/**
+	 * Start the full animation sequence (triggered by start button click)
+	 */
+	private startAnimationSequence(
+		blackScreen: Konva.Rect,
+		width: number,
+		height: number,
+		stateText: Konva.Text,
+		ofText: Konva.Text,
+		panicText: Konva.Text,
+		stateTween: Konva.Tween,
+		ofTween: Konva.Tween,
+		panicTween: Konva.Tween
+	): void {
 		// Play animations in sequence with 1.0s delay between each
 		waitForFontsReady().then(() => {
 			// Text animations
@@ -322,6 +402,10 @@ export class MenuView {
 				// Remove black screen
 				blackScreen.destroy();
 				this.overlayLayer.draw();
+				
+				// Play ching sound effect (use preloaded audio - no need to catch, user clicked so it will work)
+				this.chingSound.currentTime = 0; // Reset to start
+				this.chingSound.play();
 				
 				// Create white screen overlay
 				const whiteScreen = new Konva.Rect({
@@ -350,10 +434,6 @@ export class MenuView {
 				whiteFadeTween.play();
 			}, 3100); // Start white fade 0.8s after PANIC animation finishes
 		});
-
-		// Start hidden by default, the App/ViewManager will show it
-		this.hide();
-
 	}
 
 	/**
