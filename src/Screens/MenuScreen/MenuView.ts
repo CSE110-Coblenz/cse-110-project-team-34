@@ -341,7 +341,7 @@ export class MenuView {
 		
 		// Calculate proportional X positions based on stage width
 		// STATE at ~30% from left, OF centered, PANIC at ~57% from left
-		const stateXPosition = width * 0.3;
+		const stateXPosition = width * 0.29;
 		const panicXPosition = width * 0.57;
 		
 		// Create text objects
@@ -533,6 +533,36 @@ export class MenuView {
 			easing: Konva.Easings.EaseInOut
 		});
 		vignetteTween.play();
+		
+		// Start book GIF bounce animation
+		this.startBookBounce();
+	}
+	
+	/**
+	 * Start the bouncing animation for the book GIF
+	 */
+	private startBookBounce(): void {
+		if (!this.overlayGifElement) return;
+		
+		// Get the current top position (38%)
+		const currentTop = parseFloat(this.overlayGifElement.style.top) || 38;
+		
+		// Create a looping bounce effect (up 7px, then back down immediately)
+		const bounce = () => {
+			if (!this.overlayGifElement) return;
+			
+			// Move up 7px
+			this.overlayGifElement.style.top = `${currentTop - 0.36}%`; // ~7px at typical screen height
+			
+			// Immediately move back down after a very short delay
+			setTimeout(() => {
+				if (!this.overlayGifElement) return;
+				this.overlayGifElement.style.top = `${currentTop}%`;
+			}, 50); // 50ms = very quick transition
+		};
+
+		// Start the bounce loop (every 500ms for quick bouncing)
+		setInterval(bounce, 500);
 	}
 
 	/**
