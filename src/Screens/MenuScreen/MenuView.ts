@@ -396,9 +396,7 @@ export class MenuView {
 		const fontSize = 72;
 		
 		// Calculate proportional X positions based on stage width
-		// STATE at ~30% from left, OF centered, PANIC at ~57% from left
-		const stateXPosition = width * 0.29;
-		const panicXPosition = width * 0.57;
+		// OF centered, STATE half of OF width to its left, PANIC at half of OF width to the right
 		
 		// Create text objects
 		const stateText = new Konva.Text({
@@ -423,8 +421,20 @@ export class MenuView {
 		});
 		
 		// Calculate final positions
-		const ofXPosition = (width - ofText.width()) / 2;
-		
+		const baseSpacing = fontSize * 2;
+
+		// Adjust left/right spacing slightly
+		const leftSpacing = baseSpacing;
+		const rightSpacing = baseSpacing * 0.65;
+
+		// Center "OF"
+		const ofXPosition = width / 2;
+
+		// Recalculate positions
+		const stateXPosition = ofXPosition - ofText.width() / 2 - leftSpacing - stateText.width() / 2;
+		const panicXPosition = ofXPosition + ofText.width() / 2 + rightSpacing + panicText.width() / 2;
+
+
 		// Set offset for proper scaling from center of text
 		stateText.offsetX(stateText.width() / 2);
 		stateText.offsetY(stateText.height() / 2);
@@ -466,7 +476,7 @@ export class MenuView {
 		const stateTween = new Konva.Tween({
 			node: stateText,
 			duration: 0.3,
-			x: stateXPosition + stateText.width() / 2,
+			x: stateXPosition,// + stateText.width() / 2,
 			y: titleY + stateText.height() / 2,
 			opacity: 1,
 			scaleX: 1,
@@ -477,7 +487,7 @@ export class MenuView {
 		const ofTween = new Konva.Tween({
 			node: ofText,
 			duration: 0.3,
-			x: ofXPosition + ofText.width() / 2,
+			x: ofXPosition,// + ofText.width() / 2,
 			y: titleY + ofText.height() / 2,
 			opacity: 1,
 			scaleX: 1,
@@ -488,7 +498,7 @@ export class MenuView {
 		const panicTween = new Konva.Tween({
 			node: panicText,
 			duration: 0.3,
-			x: panicXPosition + panicText.width() / 2,
+			x: panicXPosition,// + panicText.width() / 2,
 			y: titleY + panicText.height() / 2,
 			opacity: 1,
 			scaleX: 1,
