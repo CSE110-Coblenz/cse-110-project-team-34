@@ -17,6 +17,10 @@ export class MenuView {
 	private chingSound: HTMLAudioElement; // Preloaded audio
 	private backgroundMusic: HTMLAudioElement; // Looping background music
 	private introVoice: HTMLAudioElement; // Intro voice audio
+	private muteButton: Konva.Group | null = null; // Mute/unmute button group
+	private muteButtonIcon: Konva.Image | null = null; // Icon within mute button
+	private muteButtonText: Konva.Text | null = null; // Text within mute button
+	private isMuted: boolean = false; // Track mute state
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -276,6 +280,53 @@ export class MenuView {
 			crackedRect.fill('#d0d0d0');
 			document.body.style.cursor = 'default';
 		});
+		
+		// --- 4. Mute Button (to the right of Classic button) ---
+		// Load the unmuted icon (default state)
+		const unmuteIconObj = new Image();
+		unmuteIconObj.onload = () => {
+			// Create a group for the mute button (icon + text)
+			this.muteButton = new Konva.Group({
+				x: buttonWidth + 40, // 40px spacing from classic button
+				y: buttonHeight + buttonSpacing, // Same Y as classic button
+			});
+			
+			// Create the icon
+			this.muteButtonIcon = createPixelImage(unmuteIconObj, { x: 0, y: 0 });
+			this.muteButtonIcon.scaleX(3); // 3x scale
+			this.muteButtonIcon.scaleY(3); // 3x scale
+			this.muteButton.add(this.muteButtonIcon);
+			
+			// Create the text to the right of the icon
+			const iconWidth = unmuteIconObj.width * 3; // Width of scaled icon
+			this.muteButtonText = new Konva.Text({
+				text: 'Mute music',
+				fontSize: 24,
+				fontFamily: 'DungeonFont',
+				x: iconWidth + 10, // 10px spacing from icon
+				y: 0,
+				fill: 'white',
+				verticalAlign: 'top',
+			});
+			this.muteButton.add(this.muteButtonText);
+			
+			// Add hover effect to the entire group
+			this.muteButton.on('mouseenter', () => {
+				document.body.style.cursor = 'pointer';
+			});
+			this.muteButton.on('mouseleave', () => {
+				document.body.style.cursor = 'default';
+			});
+			
+			// Add click handler to toggle mute
+			this.muteButton.on('click', () => {
+				this.toggleMute();
+			});
+			
+			this.group.add(this.muteButton);
+			this.contentLayer.draw();
+		};
+		unmuteIconObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Content/2 Icons/10.png';
 		
 		// Add all three buttons to the main menu group (they're now in a vertical stack)
 		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
@@ -649,5 +700,62 @@ export class MenuView {
 	public stopMusic() {
 		this.backgroundMusic.pause();
 		this.backgroundMusic.currentTime = 0;
+	}
+	
+	// Method to toggle mute/unmute
+	private toggleMute() {
+		this.isMuted = !this.isMuted;
+		
+		if (this.isMuted) {
+			// Mute the music by setting volume to 0
+			this.backgroundMusic.volume = 0;
+			
+			// Switch to muted icon (11.png)
+			if (this.muteButtonIcon) {
+				const mutedIconObj = new Image();
+				mutedIconObj.onload = () => {
+					if (this.muteButtonIcon && this.muteButton) {
+						// Remove old icon
+						this.muteButtonIcon.destroy();
+						
+						// Create new icon with muted image
+						this.muteButtonIcon = createPixelImage(mutedIconObj, { x: 0, y: 0 });
+						this.muteButtonIcon.scaleX(3);
+						this.muteButtonIcon.scaleY(3);
+						
+						// Add to button group at the beginning (behind text)
+						this.muteButton.add(this.muteButtonIcon);
+						this.muteButtonIcon.moveToBottom();
+						this.contentLayer.draw();
+					}
+				};
+				mutedIconObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Content/2 Icons/11.png';
+			}
+		} else {
+			// Unmute the music by setting volume back to full
+			this.backgroundMusic.volume = 1;
+			
+			// Switch to unmuted icon (10.png)
+			if (this.muteButtonIcon) {
+				const unmuteIconObj = new Image();
+				unmuteIconObj.onload = () => {
+					if (this.muteButtonIcon && this.muteButton) {
+						// Remove old icon
+						this.muteButtonIcon.destroy();
+						
+						// Create new icon with unmuted image
+						this.muteButtonIcon = createPixelImage(unmuteIconObj, { x: 0, y: 0 });
+						this.muteButtonIcon.scaleX(3);
+						this.muteButtonIcon.scaleY(3);
+						
+						// Add to button group at the beginning (behind text)
+						this.muteButton.add(this.muteButtonIcon);
+						this.muteButtonIcon.moveToBottom();
+						this.contentLayer.draw();
+					}
+				};
+				unmuteIconObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Content/2 Icons/10.png';
+			}
+		}
 	}
 }
