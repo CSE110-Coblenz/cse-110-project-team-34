@@ -195,27 +195,116 @@ export class MenuView {
 		// Add all three sections to the main menu group
 		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
 
-		// Add title text using the Ka1 font
-		const sampleText = new Konva.Text({
-			text: 'STATE OF PANIC',
+		// Add title text using the Ka1 font - "OF" centered, with manual positioning for STATE and PANIC
+		const titleY = 20;
+		const fontSize = 72;
+		
+		// Final X positions for STATE and PANIC
+		const stateXPosition = 655;
+		const panicXPosition = 1120;
+		
+		// Create text objects
+		const stateText = new Konva.Text({
+			text: 'STATE',
 			fontFamily: 'Ka1',
-			fontSize: 72,
+			fontSize: fontSize,
 			fill: 'white',
-			x: 0,
-			y: 20,
-			width: width,
-			align: 'center',
 		});
-		this.contentLayer.add(sampleText);
+		
+		const ofText = new Konva.Text({
+			text: 'OF',
+			fontFamily: 'Ka1',
+			fontSize: fontSize,
+			fill: 'white',
+		});
+		
+		const panicText = new Konva.Text({
+			text: 'PANIC',
+			fontFamily: 'Ka1',
+			fontSize: fontSize,
+			fill: 'white',
+		});
+		
+		// Calculate final positions
+		const ofXPosition = (width - ofText.width()) / 2;
+		
+		// Set offset for proper scaling from center of text
+		stateText.offsetX(stateText.width() / 2);
+		stateText.offsetY(stateText.height() / 2);
+		ofText.offsetX(ofText.width() / 2);
+		ofText.offsetY(ofText.height() / 2);
+		panicText.offsetX(panicText.width() / 2);
+		panicText.offsetY(panicText.height() / 2);
+		
+		// Set STARTING properties (huge, invisible, off-screen)
+		// STATE starts from left
+		stateText.x(-500);
+		stateText.y(titleY + stateText.height() / 2);
+		stateText.opacity(0);
+		stateText.scaleX(5);
+		stateText.scaleY(5);
+		
+		// OF starts from top
+		ofText.x(ofXPosition + ofText.width() / 2);
+		ofText.y(-500);
+		ofText.opacity(0);
+		ofText.scaleX(5);
+		ofText.scaleY(5);
+		
+		// PANIC starts from right
+		panicText.x(width + 500);
+		panicText.y(titleY + panicText.height() / 2);
+		panicText.opacity(0);
+		panicText.scaleX(5);
+		panicText.scaleY(5);
+		
+		// Add to layer
+		this.contentLayer.add(stateText, ofText, panicText);
 		this.contentLayer.draw();
+		
+		// Create landing animations - 2x faster (0.3s duration)
+		const stateTween = new Konva.Tween({
+			node: stateText,
+			duration: 0.3,
+			x: stateXPosition + stateText.width() / 2,
+			y: titleY + stateText.height() / 2,
+			opacity: 1,
+			scaleX: 1,
+			scaleY: 1,
+			easing: Konva.Easings.EaseOut,
+		});
+		
+		const ofTween = new Konva.Tween({
+			node: ofText,
+			duration: 0.3,
+			x: ofXPosition + ofText.width() / 2,
+			y: titleY + ofText.height() / 2,
+			opacity: 1,
+			scaleX: 1,
+			scaleY: 1,
+			easing: Konva.Easings.EaseOut,
+		});
+		
+		const panicTween = new Konva.Tween({
+			node: panicText,
+			duration: 0.3,
+			x: panicXPosition + panicText.width() / 2,
+			y: titleY + panicText.height() / 2,
+			opacity: 1,
+			scaleX: 1,
+			scaleY: 1,
+			easing: Konva.Easings.EaseOut,
+		});
+		
+		// Play animations in sequence with 0.5s delay between each
+		waitForFontsReady().then(() => {
+			stateTween.play();
+			setTimeout(() => ofTween.play(), 500);     // OF starts 0.5s after STATE
+			setTimeout(() => panicTween.play(), 1000); // PANIC starts 0.5s after OF
+		});
 
 		// Start hidden by default, the App/ViewManager will show it
 		this.hide();
-
-		// Redraw text after fonts are ready so custom font renders if used
-		waitForFontsReady().then(() => {
-			this.contentLayer.batchDraw();
-		});
 
 	}
 
