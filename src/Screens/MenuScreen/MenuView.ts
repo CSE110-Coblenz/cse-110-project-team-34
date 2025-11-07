@@ -335,13 +335,14 @@ export class MenuView {
 		this.group.x(((width - buttonWidth) / 2) - 250);  // Center horizontally
 		this.group.y((height / 2) - 200);  // Center vertically (adjust as needed)
 
-		// Add title text using the Ka1 font - "OF" centered, with manual positioning for STATE and PANIC
+		// Add title text using the Ka1 font - "OF" centered, with proportional positioning for STATE and PANIC
 		const titleY = 20;
 		const fontSize = 72;
 		
-		// Final X positions for STATE and PANIC
-		const stateXPosition = 655;
-		const panicXPosition = 1120;
+		// Calculate proportional X positions based on stage width
+		// STATE at ~30% from left, OF centered, PANIC at ~57% from left
+		const stateXPosition = width * 0.3;
+		const panicXPosition = width * 0.57;
 		
 		// Create text objects
 		const stateText = new Konva.Text({
