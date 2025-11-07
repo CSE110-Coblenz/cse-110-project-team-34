@@ -11,9 +11,20 @@ export class MenuView {
 	private contentLayer: Konva.Layer;
 	private overlayLayer: Konva.Layer; // New layer for black/white screen overlays
 	private backgroundImage: Konva.Image | null = null;
+	private baseBackgroundImage: Konva.Image | null = null; // store base for zoom
 	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
+	private crackedFireGif: HTMLImageElement | null = null; // DOM fire gif for CRACKED hover
 	private vignette: Konva.Rect | null = null; // Vignette effect for animation
+	private titleFlashIntervalId: number | null = null; // interval id for flashing title
+	// References for title to animate out later
+	private titleStateText: Konva.Text | null = null;
+	private titleOfText: Konva.Text | null = null;
+	private titlePanicText: Konva.Text | null = null;
+	// Bounce interval for the book GIF
+	private bookBounceIntervalId: number | null = null;
+	// Prevent duplicate exit animations
+	private isExiting: boolean = false;
 	private chingSound: HTMLAudioElement; // Preloaded audio
 	private backgroundMusic: HTMLAudioElement; // Looping background music
 	private introVoice: HTMLAudioElement; // Intro voice audio
@@ -271,13 +282,49 @@ export class MenuView {
 		});
 		this.crackedButton.add(crackedText);
 
-		// Hover effect for cracked button
+		// Prepare DOM fire GIF for cracked button hover
+		if (!this.crackedFireGif) {
+			this.crackedFireGif = document.createElement('img');
+			this.crackedFireGif.src = '/Humble Gift - Paper UI System v1.1/fire.gif';
+			this.crackedFireGif.style.position = 'absolute';
+			this.crackedFireGif.style.width = `${buttonWidth}px`;
+			this.crackedFireGif.style.height = `${buttonHeight}px`;
+			this.crackedFireGif.style.objectFit = 'cover';
+			this.crackedFireGif.style.imageRendering = 'pixelated';
+			this.crackedFireGif.style.pointerEvents = 'none';
+			this.crackedFireGif.style.display = 'none';
+			// Place between background (0) and content (10) so it's behind the text drawn on content layer
+			this.crackedFireGif.style.zIndex = '5';
+			const stageContainer = this.stage.container();
+			stageContainer.style.position = 'relative';
+			stageContainer.appendChild(this.crackedFireGif);
+		}
+
+		// Hover effect for cracked button: show fire gif behind text
 		this.crackedButton.on('mouseenter', () => {
-			crackedRect.fill('#b0b0b0');
+			// Position the gif to align with the cracked button's absolute position
+			const abs = this.crackedButton.getAbsolutePosition();
+			if (this.crackedFireGif) {
+				this.crackedFireGif.style.left = `${abs.x}px`;
+				this.crackedFireGif.style.top = `${abs.y}px`;
+				this.crackedFireGif.style.display = 'block';
+			}
+			// Change CRACKED text color to red on hover
+			crackedText.fill('red');
+			// Make the rect transparent so the gif is visible behind the text
+			crackedRect.fill('rgba(0,0,0,0)');
+			this.contentLayer.batchDraw();
 			document.body.style.cursor = 'pointer';
 		});
 		this.crackedButton.on('mouseleave', () => {
+			// Hide the gif and restore the button fill
+			if (this.crackedFireGif) {
+				this.crackedFireGif.style.display = 'none';
+			}
+			// Restore CRACKED text color
+			crackedText.fill('black');
 			crackedRect.fill('#d0d0d0');
+			this.contentLayer.batchDraw();
 			document.body.style.cursor = 'default';
 		});
 		
@@ -399,7 +446,10 @@ export class MenuView {
 		panicText.scaleX(5);
 		panicText.scaleY(5);
 		
-		// Add title text to overlay layer (above black screen)
+		// Keep references and add title text to overlay layer (above black screen)
+		this.titleStateText = stateText;
+		this.titleOfText = ofText;
+		this.titlePanicText = panicText;
 		this.overlayLayer.add(stateText, ofText, panicText);
 		this.overlayLayer.draw();
 		
@@ -479,6 +529,8 @@ export class MenuView {
 				
 				// Start looping background music
 				this.backgroundMusic.currentTime = 0;
+				// Restore volume unless user muted it
+				this.backgroundMusic.volume = this.isMuted ? 0 : 1;
 				this.backgroundMusic.play();
 				
 				// Create white screen overlay
@@ -492,22 +544,30 @@ export class MenuView {
 				});
 				this.overlayLayer.add(whiteScreen);
 				this.overlayLayer.draw();
+
+				// Start vignette animation as soon as the white screen appears.
+				// It should finish exactly when title flashing & book bounce begin.
+				const bounceDelayMs = 5800; // delay after white fade finishes before title/bounce start
+				const whiteFadeSeconds = 1.5; // must match whiteFadeTween duration below
+				const totalVignetteSeconds = whiteFadeSeconds + (bounceDelayMs / 1000);
+				this.animateVignette(width, height, totalVignetteSeconds);
 				
 				// Fade out white screen
 				const whiteFadeTween = new Konva.Tween({
 					node: whiteScreen,
-					duration: 1.5, // 1.5 seconds fade
+					duration: whiteFadeSeconds, // 1.5 seconds fade
 					opacity: 0,
 					easing: Konva.Easings.EaseInOut,
 					onFinish: () => {
 						// Remove white screen completely once fade is done
 						whiteScreen.destroy();
 						this.overlayLayer.draw();
-						
-						// Start vignette animation 7 seconds after white screen appears
-						setTimeout(() => {
-							this.animateVignette(width, height);
-						}, 5800);
+
+							// Start title flashing and book GIF bounce at the original timing
+							setTimeout(() => {
+								this.startTitleFlash(500);
+								this.startBookBounce();
+							}, 5800);
 					}
 				});
 				whiteFadeTween.play();
@@ -518,7 +578,7 @@ export class MenuView {
 	/**
 	 * Animate the vignette from large (no black visible) to normal size
 	 */
-	private animateVignette(width: number, height: number): void {
+	private animateVignette(width: number, height: number, durationSec: number = 0.8): void {
 		if (!this.vignette) return;
 		
 		const vignetteCenterX = width / 2;
@@ -528,14 +588,50 @@ export class MenuView {
 		// Animate the radial gradient end radius from large to normal
 		const vignetteTween = new Konva.Tween({
 			node: this.vignette,
-			duration: 0.8, // 0.8 seconds animation
+			duration: durationSec, // customizable duration
 			fillRadialGradientEndRadius: finalVignetteRadius,
 			easing: Konva.Easings.EaseInOut
 		});
 		vignetteTween.play();
-		
-		// Start book GIF bounce animation
-		this.startBookBounce();
+	}
+
+	/**
+	 * Start continuous flashing of the title between red and white.
+	 * periodMs controls the time between color toggles.
+	 */
+	private startTitleFlash(periodMs: number = 500): void {
+		// Clear previous if any
+		if (this.titleFlashIntervalId) {
+			clearInterval(this.titleFlashIntervalId);
+			this.titleFlashIntervalId = null;
+		}
+
+		const nodes: (Konva.Text | null)[] = [this.titleStateText, this.titleOfText, this.titlePanicText];
+		let isRed = false;
+		const applyColor = () => {
+			nodes.forEach(n => {
+				if (!n) return;
+				n.fill(isRed ? '#ff3b3b' : 'white');
+			});
+			this.overlayLayer.batchDraw();
+		};
+
+		applyColor();
+		this.titleFlashIntervalId = window.setInterval(() => {
+			isRed = !isRed;
+			applyColor();
+		}, periodMs);
+	}
+
+	/** Stop the continuous title flashing and restore to white */
+	private stopTitleFlash(): void {
+		if (this.titleFlashIntervalId) {
+			clearInterval(this.titleFlashIntervalId);
+			this.titleFlashIntervalId = null;
+		}
+		const nodes: (Konva.Text | null)[] = [this.titleStateText, this.titleOfText, this.titlePanicText];
+		nodes.forEach(n => n && n.fill('white'));
+		this.overlayLayer.batchDraw();
 	}
 	
 	/**
@@ -562,7 +658,18 @@ export class MenuView {
 		};
 
 		// Start the bounce loop (every 500ms for quick bouncing)
-		setInterval(bounce, 500);
+		if (this.bookBounceIntervalId) {
+			clearInterval(this.bookBounceIntervalId);
+		}
+		this.bookBounceIntervalId = window.setInterval(bounce, 500);
+	}
+
+	/** Stop the book GIF bounce animation */
+	private stopBookBounce(): void {
+		if (this.bookBounceIntervalId) {
+			clearInterval(this.bookBounceIntervalId);
+			this.bookBounceIntervalId = null;
+		}
 	}
 
 	/**
@@ -574,6 +681,7 @@ export class MenuView {
 		baseImageObj.onload = () => {
 			// Create Konva image with NN scaling (pixel-art rendering)
 			const baseBackground = createPixelImage(baseImageObj, { x: 0, y: 0 });
+			this.baseBackgroundImage = baseBackground;
 			
 			// Scale to fill the entire stage
 			const scaleX = this.stage.width() / baseImageObj.width;
@@ -624,7 +732,7 @@ export class MenuView {
 				]
 			});
 			
-			this.backgroundLayer.add(this.vignette);
+			// Don't add vignette yet - wait for overlay image to load first
 			this.backgroundLayer.draw();
 			
 			console.log('✓ Base background image loaded for menu');
@@ -657,6 +765,12 @@ export class MenuView {
 			
 			// Add to background layer (on top of base background)
 			this.backgroundLayer.add(this.backgroundImage);
+			
+			// Now add the vignette on top of the overlay image
+			if (this.vignette) {
+				this.backgroundLayer.add(this.vignette);
+			}
+			
 			this.backgroundLayer.draw();
 			
 			console.log('✓ Overlay background image loaded for menu');
@@ -788,5 +902,161 @@ export class MenuView {
 				unmuteIconObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Content/2 Icons/10.png';
 			}
 		}
+	}
+
+	/**
+	 * Animate exiting the menu: slide title up, book+buttons left then off to the right.
+	 * Calls onComplete() when done so controller can switch screens.
+	 */
+	public animateExit(onComplete: () => void): void {
+		if (this.isExiting) return;
+		this.isExiting = true;
+
+		// Stop bounce loop if running
+		this.stopBookBounce();
+		// Stop title flashing if active
+		this.stopTitleFlash();
+
+		const width = this.stage.width();
+		const height = this.stage.height();
+		const slideDistance = 50; // px left nudge
+		const groupStartX = this.group.x();
+
+		// 1) Title slides up and fades
+		const titleTweens: Konva.Tween[] = [];
+		const titleDuration = 0.6;
+		const makeUpTween = (node: Konva.Text | null) => {
+			if (!node) return;
+			titleTweens.push(new Konva.Tween({
+				node,
+				duration: titleDuration,
+				y: -200,
+				opacity: 0,
+				easing: Konva.Easings.EaseIn,
+			}));
+		};
+		makeUpTween(this.titleStateText);
+		makeUpTween(this.titleOfText);
+		makeUpTween(this.titlePanicText);
+		titleTweens.forEach(t => t.play());
+
+		// Shared total duration for exit motion (buttons + book GIF + secondary background)
+		const EXIT_ANIM_DURATION = 1.5; // seconds (change this one value to scale whole exit)
+		const NUDGE_FRACTION = 0.2; // fraction of total spent on initial left nudge
+		const nudgeDuration = EXIT_ANIM_DURATION * NUDGE_FRACTION;
+		const flyDuration = EXIT_ANIM_DURATION - nudgeDuration;
+
+		// Unified motion driven by requestAnimationFrame to keep relative positions locked
+		const groupStart = groupStartX;
+		const groupMid = groupStart - slideDistance;
+		const groupEnd = width + 500;
+
+		const bgStart = this.backgroundImage ? this.backgroundImage.x() : 0;
+		const bgMid = bgStart - slideDistance;
+		const bgEnd = width + 500;
+
+		const gifStartPct = this.overlayGifElement ? parseFloat(this.overlayGifElement.style.left || '50') : 50;
+		const deltaPctPerPx = 100 / width;
+		const gifMidPct = gifStartPct - (slideDistance * deltaPctPerPx);
+		const gifEndPct = 150; // off-screen right
+
+		let rafId: number | null = null;
+		const t0 = performance.now();
+		const totalMs = EXIT_ANIM_DURATION * 1000;
+		const nudgeMs = nudgeDuration * 1000;
+
+		const step = (now: number) => {
+			const elapsed = Math.min(now - t0, totalMs);
+			if (elapsed <= nudgeMs) {
+				const p = elapsed / nudgeMs;
+				this.group.x(groupStart + (groupMid - groupStart) * p);
+				if (this.backgroundImage) this.backgroundImage.x(bgStart + (bgMid - bgStart) * p);
+				if (this.overlayGifElement) this.overlayGifElement.style.left = `${gifStartPct + (gifMidPct - gifStartPct) * p}%`;
+			} else {
+				const p = (elapsed - nudgeMs) / (totalMs - nudgeMs);
+				this.group.x(groupMid + (groupEnd - groupMid) * p);
+				if (this.backgroundImage) this.backgroundImage.x(bgMid + (bgEnd - bgMid) * p);
+				if (this.overlayGifElement) this.overlayGifElement.style.left = `${gifMidPct + (gifEndPct - gifMidPct) * p}%`;
+			}
+
+			// Redraw layers for Konva nodes
+			this.contentLayer.batchDraw();
+			this.backgroundLayer.batchDraw();
+
+			if (elapsed < totalMs) {
+				rAF();
+			}
+		};
+
+		const rAF = () => { rafId = requestAnimationFrame(step); };
+		rAF();
+
+		// Fade to black + zoom into base background
+		const fadeRect = new Konva.Rect({ x:0, y:0, width, height, fill:'black', opacity:0 });
+		this.overlayLayer.add(fadeRect);
+		this.overlayLayer.draw();
+
+		const fadeDuration = 3; // seconds
+
+		// Fade out background music in sync with the black fade
+		{
+			const startVol = this.backgroundMusic ? this.backgroundMusic.volume : 1;
+			const targetVol = 0;
+			const totalMs = fadeDuration * 1000;
+			const t0 = performance.now();
+			const stepVol = (now: number) => {
+				const elapsed = Math.min(now - t0, totalMs);
+				const p = totalMs > 0 ? elapsed / totalMs : 1;
+				const v = startVol + (targetVol - startVol) * p;
+				if (this.backgroundMusic) {
+					this.backgroundMusic.volume = Math.max(0, Math.min(1, v));
+				}
+				if (elapsed < totalMs) {
+					requestAnimationFrame(stepVol);
+				}
+			};
+			requestAnimationFrame(stepVol);
+		}
+
+		const fadeTween = new Konva.Tween({
+			node: fadeRect,
+			duration: fadeDuration,
+			opacity: 1,
+			easing: Konva.Easings.Linear,
+			onFinish: () => {
+				// Guarantee music fully faded on completion
+				if (this.backgroundMusic) this.backgroundMusic.volume = 0;
+				onComplete();
+			}
+		});
+
+
+		// Zoom into the center of the screen: adjust scale AND position to keep center fixed
+		if (this.baseBackgroundImage) {
+			const currentScaleX = this.baseBackgroundImage.scaleX();
+			const currentScaleY = this.baseBackgroundImage.scaleY();
+			const targetScaleX = currentScaleX * 8;
+			const targetScaleY = currentScaleY * 8;
+			// Compute target top-left so that the image remains centered after scaling
+			const imgW = this.baseBackgroundImage.width();
+			const imgH = this.baseBackgroundImage.height();
+			const targetW = imgW * targetScaleX;
+			const targetH = imgH * targetScaleY;
+			const targetX = (width - targetW) / 2;
+			const targetY = (height - targetH) / 2;
+
+			const zoomTween = new Konva.Tween({
+				node: this.baseBackgroundImage,
+				duration: fadeDuration,
+				scaleX: targetScaleX,
+				scaleY: targetScaleY,
+				x: targetX,
+				y: targetY,
+				easing: Konva.Easings.EaseIn,
+			});
+			zoomTween.play();
+		}
+
+		fadeTween.play();
 	}
 }
