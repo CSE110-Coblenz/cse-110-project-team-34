@@ -13,6 +13,7 @@ export class MenuView {
 	private backgroundImage: Konva.Image | null = null;
 	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
+	private vignette: Konva.Rect | null = null; // Vignette effect for animation
 	private chingSound: HTMLAudioElement; // Preloaded audio
 	private backgroundMusic: HTMLAudioElement; // Looping background music
 	private introVoice: HTMLAudioElement; // Intro voice audio
@@ -450,11 +451,36 @@ export class MenuView {
 						// Remove white screen completely once fade is done
 						whiteScreen.destroy();
 						this.overlayLayer.draw();
+						
+						// Start vignette animation 7 seconds after white screen appears
+						setTimeout(() => {
+							this.animateVignette(width, height);
+						}, 5800);
 					}
 				});
 				whiteFadeTween.play();
-			}, 3100); // Start white fade 0.8s after PANIC animation finishes
+			}, 2900); // Start white fade 0.8s after PANIC animation finishes
 		});
+	}
+	
+	/**
+	 * Animate the vignette from large (no black visible) to normal size
+	 */
+	private animateVignette(width: number, height: number): void {
+		if (!this.vignette) return;
+		
+		const vignetteCenterX = width / 2;
+		const vignetteCenterY = height / 2;
+		const finalVignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY);
+		
+		// Animate the radial gradient end radius from large to normal
+		const vignetteTween = new Konva.Tween({
+			node: this.vignette,
+			duration: 0.8, // 0.8 seconds animation
+			fillRadialGradientEndRadius: finalVignetteRadius,
+			easing: Konva.Easings.EaseInOut
+		});
+		vignetteTween.play();
 	}
 
 	/**
@@ -493,10 +519,13 @@ export class MenuView {
 			const vignetteCenterX = stageWidth / 2;
 			const vignetteCenterY = stageHeight / 2;
 			
-			// Calculate radius to reach corners (diagonal distance)
-			const vignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY);
+			// Calculate radius to reach corners (diagonal distance) - this is the final size
+			const finalVignetteRadius = Math.sqrt(vignetteCenterX * vignetteCenterX + vignetteCenterY * vignetteCenterY);
 			
-			const vignette = new Konva.Rect({
+			// Start with a much larger radius so the black area is not visible
+			const startVignetteRadius = finalVignetteRadius * 3; // 3x larger to hide black edges
+			
+			this.vignette = new Konva.Rect({
 				x: 0,
 				y: 0,
 				width: stageWidth,
@@ -504,7 +533,7 @@ export class MenuView {
 				fillRadialGradientStartPoint: { x: vignetteCenterX, y: vignetteCenterY },
 				fillRadialGradientStartRadius: 0,
 				fillRadialGradientEndPoint: { x: vignetteCenterX, y: vignetteCenterY },
-				fillRadialGradientEndRadius: vignetteRadius,
+				fillRadialGradientEndRadius: startVignetteRadius, // Start large
 				fillRadialGradientColorStops: [
 					0, 'rgba(0, 0, 0, 0)',      // Transparent at center
 					0.5, 'rgba(0, 0, 0, 0.3)',  // Slight darkening midway
@@ -513,7 +542,7 @@ export class MenuView {
 				]
 			});
 			
-			this.backgroundLayer.add(vignette);
+			this.backgroundLayer.add(this.vignette);
 			this.backgroundLayer.draw();
 			
 			console.log('✓ Base background image loaded for menu');
@@ -560,7 +589,7 @@ export class MenuView {
 
 		// Load the animated GIF overlay as a DOM element (not Konva) so it can animate
 		this.overlayGifElement = document.createElement('img');
-		this.overlayGifElement.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/geunyeong-park-book.gif';
+		this.overlayGifElement.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/book opening.gif';
 		this.overlayGifElement.style.position = 'absolute';
 		this.overlayGifElement.style.top = '38%';
 		this.overlayGifElement.style.left = '50%';
