@@ -16,6 +16,15 @@ export class MenuView {
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
 	private crackedFireGif: HTMLImageElement | null = null; // DOM fire gif for CRACKED hover
 	private vignette: Konva.Rect | null = null; // Vignette effect for animation
+	// Audio visualizer fields
+	private audioContext: AudioContext | null = null;
+	private analyser: AnalyserNode | null = null;
+	private mediaElementSource: MediaElementAudioSourceNode | null = null;
+	private freqData: Uint8Array | null = null;
+	private visualizerLayer: Konva.Layer | null = null;
+	private visualizerGroup: Konva.Group | null = null;
+	private visualizerBars: Konva.Line[] = [];
+	private visualizerAnim: Konva.Animation | null = null;
 	private titleFlashIntervalId: number | null = null; // interval id for flashing title
 	// References for title to animate out later
 	private titleStateText: Konva.Text | null = null;
@@ -545,6 +554,10 @@ export class MenuView {
 				this.overlayLayer.add(whiteScreen);
 				this.overlayLayer.draw();
 
+				// Prepare audio analyzer and visualizer bars ahead of time
+				this.ensureAudioAnalyzer();
+				this.setupVisualizerBars();
+
 				// Start vignette animation as soon as the white screen appears.
 				// It should finish exactly when title flashing & book bounce begin.
 				const bounceDelayMs = 5800; // delay after white fade finishes before title/bounce start
@@ -567,6 +580,11 @@ export class MenuView {
 							setTimeout(() => {
 								this.startTitleFlash(500);
 								this.startBookBounce();
+								// Also start audio visualizer now
+								this.ensureAudioAnalyzer();
+								this.setupVisualizerBars();
+								if (this.visualizerGroup) this.visualizerGroup.show();
+								this.startVisualizer();
 							}, 5800);
 					}
 				});
@@ -621,6 +639,117 @@ export class MenuView {
 			isRed = !isRed;
 			applyColor();
 		}, periodMs);
+	}
+
+	/** Ensure Web Audio analyser is created and connected to backgroundMusic */
+	private ensureAudioAnalyzer(): void {
+		if (this.analyser && this.audioContext && this.freqData) return;
+		if (!this.backgroundMusic) return;
+		try {
+			// Create context/analyser once
+			if (!this.audioContext) this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+			if (!this.analyser) this.analyser = this.audioContext.createAnalyser();
+			this.analyser.fftSize = 256; // 128 bins
+			const bufferLength = this.analyser.frequencyBinCount;
+			this.freqData = new Uint8Array(bufferLength);
+			// Connect music element to analyser if not already
+			if (!this.mediaElementSource) {
+				this.mediaElementSource = this.audioContext.createMediaElementSource(this.backgroundMusic);
+				this.mediaElementSource.connect(this.analyser);
+				this.analyser.connect(this.audioContext.destination);
+			}
+		} catch (e) {
+			console.warn('Audio analyzer setup failed:', e);
+		}
+	}
+
+	/** Create visualizer layer and bars behind the GIF (once) */
+	private setupVisualizerBars(): void {
+		if (this.visualizerGroup) return; // already created
+		if (!this.analyser || !this.freqData) return;
+		// Create layer positioned between background (0) and GIF (5)
+		this.visualizerLayer = new Konva.Layer();
+		this.stage.add(this.visualizerLayer);
+		const vizCanvas = this.visualizerLayer.getCanvas()._canvas as HTMLCanvasElement;
+		vizCanvas.style.zIndex = '4';
+
+			this.visualizerGroup = new Konva.Group({ visible: false });
+		this.visualizerLayer.add(this.visualizerGroup);
+
+		const width = this.stage.width();
+		const height = this.stage.height();
+		const centerX = width / 2;
+		const centerY = height / 2;
+		const radius = Math.min(width, height) * 0.336; // inner radius (~2.4x original)
+		const bufferLength = this.analyser.frequencyBinCount;
+		const anglePerBar = (Math.PI * 2) / bufferLength;
+
+		this.visualizerBars = [];
+		for (let i = 0; i < bufferLength; i++) {
+			const angle = i * anglePerBar;
+			const sx = centerX + Math.cos(angle) * radius;
+			const sy = centerY + Math.sin(angle) * radius;
+			const bar = new Konva.Line({
+				points: [sx, sy, sx, sy],
+				stroke: 'rgba(255,255,255,0.85)',
+				strokeWidth: 3,
+				lineCap: 'round',
+			});
+			this.visualizerBars.push(bar);
+			this.visualizerGroup.add(bar);
+		}
+
+		this.visualizerLayer.draw();
+	}
+
+	/** Start the circular audio visualizer */
+	private startVisualizer(): void {
+		if (!this.audioContext || !this.analyser || !this.freqData || !this.visualizerLayer || !this.visualizerGroup) return;
+		// Resume context if suspended (mobile/autoplay policies)
+		if (this.audioContext.state === 'suspended') {
+			this.audioContext.resume().catch(() => {});
+		}
+		// Avoid duplicating animation
+		if (this.visualizerAnim) return;
+		const width = this.stage.width();
+		const height = this.stage.height();
+		const centerX = width / 2;
+		const centerY = height / 2;
+		const radius = Math.min(width, height) * 0.336; // ~2.4x original
+		const bufferLength = this.analyser.frequencyBinCount;
+		const anglePerBar = (Math.PI * 2) / bufferLength;
+		const maxBarLen = Math.min(width, height) * 0.432; // ~2.4x original
+
+		this.visualizerAnim = new Konva.Animation(() => {
+			if (!this.analyser || !this.freqData) return;
+			this.analyser.getByteFrequencyData(this.freqData as any);
+			for (let i = 0; i < bufferLength; i++) {
+				const val = this.freqData[i] ?? 0; // 0..255
+				const len = (val / 255) * maxBarLen;
+				const angle = i * anglePerBar;
+				const sx = centerX + Math.cos(angle) * radius;
+				const sy = centerY + Math.sin(angle) * radius;
+				const ex = centerX + Math.cos(angle) * (radius + len);
+				const ey = centerY + Math.sin(angle) * (radius + len);
+				const bar = this.visualizerBars[i];
+				bar.points([sx, sy, ex, ey]);
+			}
+		}, this.visualizerLayer);
+		this.visualizerAnim.start();
+	}
+
+	/** Stop and hide the visualizer */
+	private stopVisualizer(): void {
+		if (this.visualizerAnim) {
+			this.visualizerAnim.stop();
+			this.visualizerAnim = null;
+		}
+		if (this.visualizerGroup) {
+			this.visualizerGroup.hide();
+		}
+		if (this.visualizerLayer) {
+			this.visualizerLayer.batchDraw();
+		}
 	}
 
 	/** Stop the continuous title flashing and restore to white */
@@ -916,6 +1045,8 @@ export class MenuView {
 		this.stopBookBounce();
 		// Stop title flashing if active
 		this.stopTitleFlash();
+		// Stop visualizer
+		this.stopVisualizer();
 
 		const width = this.stage.width();
 		const height = this.stage.height();
