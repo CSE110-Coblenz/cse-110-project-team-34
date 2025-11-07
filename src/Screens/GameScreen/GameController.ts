@@ -11,31 +11,34 @@ export class GameController {
 	private model: GameModel;
 
 	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
-	this.screenSwitcher = screenSwitcher;
+		this.screenSwitcher = screenSwitcher;
 
-	// Create the Model and View
-	this.model = new GameModel();
-	this.view = new GameView(stage, this.model);
-		
-		// Load the US map
-		this.view.loadMap('/Blank_US_Map_(states_only).svg').then(() => {
-			console.log('Map loaded successfully!');
-			console.log(`Total states found: ${this.view.getAllStates().size}`);
+		// Create the Model and View
+		this.model = new GameModel();
+		this.view = new GameView(stage, this.model);
+
+		// Load the US map via View (View owns the SVG DOM)
+		this.view.loadMap('/Blank_US_Map_(states_only).svg').then((stateCodes) => {
+			// Initialize model with the state codes discovered by the view
+			this.model.initializeStates(stateCodes, '#adeaffff');
 			
-			// Set all states to light blue (#ADD8E6)
-			this.view.setAllStatesOriginalColor('#adeaffff');
+			// Sync the view to show the model's initial state
+			this.view.updateViewFromModel();
 			
-			// Make gameView accessible globally for testing in console
-			(window as any).gameView = this.view;
-			console.log('💡 Access gameView in console: window.gameView');
-			console.log('💡 Example: window.gameView.getState("ca")?.color("red")');
-			
+			// Wire state click handlers
+			this.wireStateClickHandlers();
+
+			// Expose for console debugging
+			(window as any).gameModel = this.model;
+			console.log('💡 Access gameModel in console: window.gameModel');
+			console.log('💡 Example: window.gameModel.getState("ca")?.color("red")');
+			console.log('💡 After changing model, call: window.gameController.refreshView()');
+			(window as any).gameController = this;
+
 			// SANDBOX MODE - Uncomment to run automated tests
-			//runSandbox(this.view);
+			// runSandbox(this.model);
 		});
-	}
-
-	getView() {
+	}	getView() {
 		return this.view;
 	}
 
@@ -45,5 +48,28 @@ export class GameController {
 
 	hide(): void {
 		this.view.hide();
+	}
+
+	private wireStateClickHandlers(): void {
+		const stateCodes = this.view.getAllStateCodes();
+		stateCodes.forEach((code) => {
+			const pathElement = this.view.getPathElement(code);
+			if (pathElement) {
+				pathElement.style.cursor = 'pointer';
+				pathElement.addEventListener('click', () => this.onStateClicked(code));
+			}
+		});
+	}
+
+	private onStateClicked(code: string): void {
+		// Update the model (pure data change)
+		this.model.guessState(code);
+		// Tell the view to refresh from the model
+		this.view.updateViewFromModel();
+	}
+
+	/** Expose a public method to refresh the view (useful for console debugging). */
+	refreshView(): void {
+		this.view.updateViewFromModel();
 	}
 }

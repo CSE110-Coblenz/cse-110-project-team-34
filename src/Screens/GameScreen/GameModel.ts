@@ -1,3 +1,66 @@
+// Pure data state - no DOM manipulation (Model should only hold data)
+export class State {
+    public code: string; // 2-letter state code (e.g., 'ca', 'tx')
+    public originalColor: string;
+    private _currentColor: string;
+    private _isGuessed: boolean = false;
+    private _isHighlighted: boolean = false;
+
+    constructor(code: string, originalColor: string = '#cccccc') {
+        this.code = code;
+        this.originalColor = originalColor;
+        this._currentColor = originalColor;
+    }
+
+    // Chainable method to set color (pure data, no DOM)
+    color(newColor: string): State {
+        this._currentColor = newColor;
+        return this;
+    }
+
+    // Chainable method to set isGuessed
+    isGuessed(guessed: boolean): State {
+        this._isGuessed = guessed;
+        return this;
+    }
+
+    // Chainable method to set highlight
+    highlight(highlighted: boolean): State {
+        this._isHighlighted = highlighted;
+        return this;
+    }
+
+    // Getter for current color
+    getColor(): string {
+        return this._currentColor;
+    }
+
+    // Getter for isGuessed
+    getIsGuessed(): boolean {
+        return this._isGuessed;
+    }
+
+    // Getter for isHighlighted
+    getIsHighlighted(): boolean {
+        return this._isHighlighted;
+    }
+
+    // Reset to original state
+    reset(): State {
+        this._currentColor = this.originalColor;
+        this._isGuessed = false;
+        this._isHighlighted = false;
+        return this;
+    }
+
+    // Set a new original color (accepts HEX, rgb, or named colors)
+    setOriginalColor(newColor: string): State {
+        this.originalColor = newColor;
+        this._currentColor = newColor;
+        return this;
+    }
+}
+
 export class GameModel {
     // Base background image (Game screen)
     baseBackgroundSrc: string = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/desk image.jpg';
@@ -33,4 +96,58 @@ export class GameModel {
     belowOverlayImageScaleY: number = 1.3;
     // Vertical gap between overlay bottom and this image's top
     belowOverlayMarginTop: number = -25;
+
+    // --- Game data (business logic) ---
+    private states: Map<string, State> = new Map();
+    score: number = 0;
+    timerSeconds: number = 0;
+
+    /** Initialize states from a list of state codes. */
+    initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
+        this.states.clear();
+        stateCodes.forEach((code) => {
+            const state = new State(code, defaultColor);
+            this.states.set(code, state);
+        });
+        console.log(`Model initialized ${this.states.size} states`);
+    }
+
+    // --- State access/manipulation ---
+    getState(stateName: string): State | undefined {
+        return this.states.get(stateName);
+    }
+
+    getAllStates(): Map<string, State> {
+        return this.states;
+    }
+
+    resetAllStates(): void {
+        this.states.forEach((s) => s.reset());
+    }
+
+    setAllStatesOriginalColor(color: string): void {
+        this.states.forEach((s) => s.setOriginalColor(color));
+        console.log(`✓ Model: set original color for all ${this.states.size} states to: ${color}`);
+    }
+
+    setAllStatesColor(color: string): void {
+        this.states.forEach((s) => s.color(color));
+        console.log(`✓ Model: set current color for all ${this.states.size} states to: ${color}`);
+    }
+
+    // --- Game actions ---
+    guessState(stateAbbr: string): void {
+        const s = this.states.get(stateAbbr);
+        if (!s) return;
+        if (!s.getIsGuessed()) {
+            s.isGuessed(true);
+            this.score += 1;
+        }
+    }
+
+    resetGame(): void {
+        this.score = 0;
+        this.timerSeconds = 0;
+        this.resetAllStates();
+    }
 }

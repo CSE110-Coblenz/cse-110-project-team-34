@@ -1,76 +1,7 @@
 import Konva from 'konva';
-import { GameModel } from './GameModel';
+import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
-
-// State class with chainable methods
-export class State {
-    public name: string;
-    public element: SVGPathElement;
-    public originalColor: string;
-    private _currentColor: string;
-    private _isGuessed: boolean = false;
-    private _isHighlighted: boolean = false;
-
-    constructor(name: string, element: SVGPathElement, originalColor: string) {
-        this.name = name;
-        this.element = element;
-        this.originalColor = originalColor;
-        this._currentColor = originalColor;
-    }
-
-    // Chainable method to set color
-    color(newColor: string): State {
-        this._currentColor = newColor;
-        this.element.setAttribute('fill', newColor);
-        return this;
-    }
-
-    // Chainable method to set isGuessed
-    isGuessed(guessed: boolean): State {
-        this._isGuessed = guessed;
-        return this;
-    }
-
-    // Chainable method to set highlight
-    highlight(highlighted: boolean): State {
-        this._isHighlighted = highlighted;
-        this.element.style.opacity = highlighted ? '0.7' : '1';
-        return this;
-    }
-
-    // Getter for current color
-    getColor(): string {
-        return this._currentColor;
-    }
-
-    // Getter for isGuessed
-    getIsGuessed(): boolean {
-        return this._isGuessed;
-    }
-
-    // Getter for isHighlighted
-    getIsHighlighted(): boolean {
-        return this._isHighlighted;
-    }
-
-    // Reset to original state
-    reset(): State {
-        this._currentColor = this.originalColor;
-        this._isGuessed = false;
-        this._isHighlighted = false;
-        this.element.setAttribute('fill', this.originalColor);
-        this.element.style.opacity = '1';
-        return this;
-    }
-
-    // Set a new original color (accepts HEX, rgb, or named colors)
-    setOriginalColor(newColor: string): State {
-        this.originalColor = newColor;
-        this._currentColor = newColor;
-        this.element.setAttribute('fill', newColor);
-        return this;
-    }
-}
+import { createPixelImage } from '../../utils/KonvaHelpers';
 
 // Export the class so ViewManager.ts can import it
 export class GameView {
@@ -79,7 +10,7 @@ export class GameView {
     private backgroundLayer: Konva.Layer;
     private layer: Konva.Layer;
     private svgContainer: HTMLDivElement | null = null;
-    private states: Map<string, State> = new Map(); // Map of state name to State objects
+    private svgPathElements: Map<string, SVGPathElement> = new Map(); // View's DOM map
     private backgroundImage: Konva.Image | null = null;
     private overlayBackgroundImage: Konva.Image | null = null;
     private leftSideImage: Konva.Image | null = null;
@@ -109,8 +40,8 @@ export class GameView {
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
-        // Create a container for the SVG
-        this.createSVGContainer();
+    // Create a container for the SVG (View only mounts it)
+    this.createSVGContainer();
 
     // Apply initial vertical offset from the model (overlay + map only)
     this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -131,7 +62,7 @@ export class GameView {
         this.svgContainer.style.display = 'flex'; // use flexbox for centering
         this.svgContainer.style.justifyContent = 'center'; // center horizontally
         this.svgContainer.style.alignItems = 'center'; // center vertically
-        this.svgContainer.style.pointerEvents = 'none'; // no interactions
+    this.svgContainer.style.pointerEvents = 'auto'; // allow interactions (clicks on states)
         this.svgContainer.style.visibility = 'hidden'; // hidden by default, use visibility instead of display
         
         // Add to body
@@ -144,12 +75,8 @@ export class GameView {
     private loadBackgroundImage(): void {
         const imageObj = new Image();
         imageObj.onload = () => {
-            // Create Konva image
-            this.backgroundImage = new Konva.Image({
-                image: imageObj,
-                x: 0,
-                y: 0,
-            });
+            // Create Konva image (pixel-art rendering)
+            this.backgroundImage = createPixelImage(imageObj, { x: 0, y: 0 });
             
             // Scale the image to fill the entire stage (stretch to corners)
             const scaleX = this.stage.width() / imageObj.width;
@@ -180,13 +107,7 @@ export class GameView {
         // Load the overlay image that should sit above the base background
         const overlayObj = new Image();
         overlayObj.onload = () => {
-            this.overlayBackgroundImage = new Konva.Image({
-                image: overlayObj,
-                x: 0,
-                y: 0,
-                // Optional: adjust opacity if needed
-                // opacity: 0.85,
-            });
+            this.overlayBackgroundImage = createPixelImage(overlayObj, { x: 0, y: 0 });
 
             // Keep original (natural) size: do NOT stretch to stage
             this.overlayBackgroundImage.scaleX(this.model.overlayScaleX);
@@ -227,11 +148,7 @@ export class GameView {
         // Load the left-side image (rotated CCW 90 degrees) and position it on the left
         const leftObj = new Image();
         leftObj.onload = () => {
-            this.leftSideImage = new Konva.Image({
-                image: leftObj,
-                x: 0,
-                y: 0,
-            });
+            this.leftSideImage = createPixelImage(leftObj, { x: 0, y: 0 });
 
             // Apply scaling
             this.leftSideImage.scaleX(this.model.leftSideImageScaleX);
@@ -270,11 +187,7 @@ export class GameView {
         // Load image to be placed below the overlay (no rotation by default)
         const belowObj = new Image();
         belowObj.onload = () => {
-            this.belowOverlayImage = new Konva.Image({
-                image: belowObj,
-                x: 0,
-                y: 0,
-            });
+            this.belowOverlayImage = createPixelImage(belowObj, { x: 0, y: 0 });
 
             // Apply scaling from model
             this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
@@ -319,151 +232,119 @@ export class GameView {
         below.y(y);
     }
 
-    /**
-     * Load and display the US map SVG
-     */
-    async loadMap(svgPath: string): Promise<void> {
+    /** Attach a parsed SVG to the View's container and style it. */
+    attachMap(svg: SVGSVGElement): void {
         if (!this.svgContainer) return;
-        
-        try {
-            const response = await fetch(svgPath);
-            if (!response.ok) {
-                throw new Error(`Failed to load SVG: ${response.statusText}`);
-            }
-            
-            const svgText = await response.text();
-            this.svgContainer.innerHTML = svgText;
-            
-            // Style the SVG to fit with aspect ratio preserved
-            const svg = this.svgContainer.querySelector('svg');
-            if (svg) {
-                svg.style.maxWidth = '90%';
-                svg.style.maxHeight = '90%';
-                svg.style.width = 'auto';
-                svg.style.height = 'auto';
-                svg.style.display = 'block';
-                svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                
-                // Parse all state paths and create State objects
-                this.parseStates(svg);
-            }
-            
-            console.log('US map loaded successfully');
-            console.log(`Found ${this.states.size} states`);
-        } catch (error) {
-            console.error('Failed to load US map:', error);
-            throw error;
-        }
+        this.svgContainer.innerHTML = '';
+        this.svgContainer.appendChild(svg);
+        // Style for aspect ratio and visibility
+        svg.style.maxWidth = '90%';
+        svg.style.maxHeight = '90%';
+        svg.style.width = 'auto';
+        svg.style.height = 'auto';
+        svg.style.display = 'block';
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        console.log('US map attached to view');
     }
 
-    /**
-     * Parse all state elements from the SVG and create State objects
-     */
-    private parseStates(svg: SVGSVGElement): void {
-        // Clear existing states
-        this.states.clear();
-        
-        // Regular expression to match exactly 2 lowercase letters (state codes only)
-        const STATE_CODE_PATTERN = /^[a-z]{2}$/;
-        
-        // Find all path elements (each state is typically a path)
-        const paths = svg.querySelectorAll('path');
-        console.log(`Found ${paths.length} path elements in SVG`);
-        
-        if (paths.length === 0) {
-            console.warn('⚠️ No path elements found in SVG!');
-            return;
+    /** Load and parse the SVG, building a map of state codes -> SVGPathElements. */
+    async loadMap(svgPath: string): Promise<string[]> {
+        if (!this.svgContainer) throw new Error('SVG container not ready');
+
+        const response = await fetch(svgPath);
+        if (!response.ok) {
+            throw new Error(`Failed to load SVG: ${response.status} ${response.statusText}`);
         }
-        
-        paths.forEach((path, index) => {
-            // Get state abbreviation from class attribute (e.g., "ca" for California)
+
+        const svgText = await response.text();
+        this.svgContainer.innerHTML = svgText;
+
+        const svg = this.svgContainer.querySelector('svg');
+        if (!svg) {
+            throw new Error('SVG root element not found');
+        }
+
+        // Style the SVG
+        svg.style.maxWidth = '90%';
+        svg.style.maxHeight = '90%';
+        svg.style.width = 'auto';
+        svg.style.height = 'auto';
+        svg.style.display = 'block';
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+        // Parse state paths and build the DOM map
+        const stateCodes = this.parseStatePaths(svg);
+        console.log(`View parsed ${stateCodes.length} state paths`);
+        return stateCodes;
+    }
+
+    /** Parse SVG path elements and return list of state codes. */
+    private parseStatePaths(svg: SVGSVGElement): string[] {
+        this.svgPathElements.clear();
+        const STATE_CODE_PATTERN = /^[a-z]{2}$/;
+        const paths = svg.querySelectorAll('path');
+        const stateCodes: string[] = [];
+
+        if (paths.length === 0) {
+            console.warn('⚠️ No path elements found in SVG');
+        }
+
+        paths.forEach((path) => {
             const classAttr = path.getAttribute('class') || '';
-            
-            // Split class attribute in case multiple classes exist (e.g., "state ca")
-            const classTokens = classAttr.split(/\s+/).map(c => c.trim()).filter(Boolean);
-            
-            // Find the first token that matches the state code pattern (2 lowercase letters)
-            const stateCode = classTokens.find(token => STATE_CODE_PATTERN.test(token));
-            
-            if (stateCode) {
-                // Exclude DC (District of Columbia) to render only the 50 U.S. states.
-                // Note: The SVG's .dccircle visibility is handled via CSS; this check is independent
-                // and only ensures DC is not treated as a "state" in game logic.
-                if (stateCode === 'dc') {
-                    // Silently skip DC
-                    return;
-                }
-                
-                // Skip if we've already parsed this state (handles multi-path states like Michigan)
-                if (this.states.has(stateCode)) {
-                    console.log(`⚠️ Duplicate state code "${stateCode}" found - using first occurrence`);
-                    return;
-                }
-                
-                // Get the original fill color
-                const computedStyle = window.getComputedStyle(path);
-                const originalColor = path.getAttribute('fill') || 
-                                     computedStyle.fill || 
-                                     '#cccccc';
-                
-                // Create State object using the state code abbreviation
-                const state = new State(stateCode, path as SVGPathElement, originalColor);
-                this.states.set(stateCode, state);
-                
-                console.log(`✓ Parsed state: "${stateCode}" (color: ${originalColor})`);
+            const classTokens = classAttr.split(/\s+/).map((c) => c.trim()).filter(Boolean);
+            const stateCode = classTokens.find((t) => STATE_CODE_PATTERN.test(t));
+
+            if (!stateCode) return; // skip non-state paths
+            if (stateCode === 'dc') return; // skip DC
+            if (this.svgPathElements.has(stateCode)) {
+                console.log(`⚠️ Duplicate state code "${stateCode}" found - using first occurrence`);
+                return;
             }
-            // Silently skip non-state paths (borders, connectors, separators, etc.)
+
+            this.svgPathElements.set(stateCode, path as SVGPathElement);
+            stateCodes.push(stateCode);
         });
-        
-        if (this.states.size === 0) {
+
+        if (stateCodes.length === 0) {
             console.error('❌ No states were parsed! Check if paths have class attributes');
         }
+
+        return stateCodes;
     }
 
-    /**
-     * Get a state by name - returns the State object for method chaining
-     */
-    getState(stateName: string): State | undefined {
-        return this.states.get(stateName);
+    /** Get a path element by state code (for click handlers). */
+    getPathElement(stateCode: string): SVGPathElement | undefined {
+        return this.svgPathElements.get(stateCode);
     }
 
-    /**
-     * Get all states
-     */
-    getAllStates(): Map<string, State> {
-        return this.states;
-    }
+    /** Sync the view with the model's current state. */
+    updateViewFromModel(): void {
+        const states = this.model.getAllStates();
+        states.forEach((state, code) => {
+            const pathElement = this.svgPathElements.get(code);
+            if (!pathElement) return;
 
-    /**
-     * Reset all states to their original state
-     */
-    resetAllStates(): void {
-        this.states.forEach((state) => {
-            state.reset();
+            // Update color
+            pathElement.setAttribute('fill', state.getColor());
+
+            // Update highlight opacity
+            pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
+
+            // Optional: add visual styling for guessed states
+            if (state.getIsGuessed()) {
+                // Example: add a class or stroke
+                pathElement.style.stroke = '#000';
+                pathElement.style.strokeWidth = '2';
+            } else {
+                pathElement.style.stroke = '';
+                pathElement.style.strokeWidth = '';
+            }
         });
     }
 
-    /**
-     * Set the original color for all states (accepts HEX, rgb, or named colors)
-     * This updates the originalColor property, so reset() will use this new color
-     * @param color - The color to set (e.g., "#ff0000", "rgb(255, 0, 0)", "red")
-     */
-    setAllStatesOriginalColor(color: string): void {
-        this.states.forEach((state) => {
-            state.setOriginalColor(color);
-        });
-        console.log(`✓ Set original color for all ${this.states.size} states to: ${color}`);
-    }
-
-    /**
-     * Set the current color for all states without changing their original color
-     * @param color - The color to set (e.g., "#ff0000", "rgb(255, 0, 0)", "red")
-     */
-    setAllStatesColor(color: string): void {
-        this.states.forEach((state) => {
-            state.color(color);
-        });
-        console.log(`✓ Set current color for all ${this.states.size} states to: ${color}`);
+    /** Get all state codes currently in the view. */
+    getAllStateCodes(): string[] {
+        return Array.from(this.svgPathElements.keys());
     }
 
     /**

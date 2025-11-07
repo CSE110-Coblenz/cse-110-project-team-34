@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { ensureLiefFontLoaded, waitForFontsReady } from '../../utils/FontLoader';
+import { createPixelImage } from '../../utils/KonvaHelpers';
 
 // Export the class so main.ts (or ViewManager.ts) can import it
 export class MenuView {
@@ -215,12 +216,8 @@ export class MenuView {
 	private loadBackgroundImage(): void {
 		const imageObj = new Image();
 		imageObj.onload = () => {
-			// Create Konva image
-			this.backgroundImage = new Konva.Image({
-				image: imageObj,
-				x: 0,
-				y: 0,
-			});
+			// Create Konva image (pixel-art rendering)
+			this.backgroundImage = createPixelImage(imageObj, { x: 0, y: 0 });
 			
 			// Scale the image to fill the entire stage (stretch to corners)
 			const scaleX = this.stage.width() / imageObj.width;
@@ -251,11 +248,7 @@ export class MenuView {
 		// Load the secondary background overlay that appears above the base background
 		const overlayObj = new Image();
 		overlayObj.onload = () => {
-			this.overlayBackgroundImage = new Konva.Image({
-				image: overlayObj,
-				x: 0,
-				y: 0,
-			});
+			this.overlayBackgroundImage = createPixelImage(overlayObj, { x: 0, y: 0 });
 
 			// Scale overlay to fill the entire stage
 			const overlayScaleX = this.stage.width() / overlayObj.width;
