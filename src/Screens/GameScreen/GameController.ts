@@ -24,9 +24,6 @@ export class GameController {
 			
 			// Sync the view to show the model's initial state
 			this.view.updateViewFromModel();
-			
-			// Wire state click handlers
-			this.wireStateClickHandlers();
 
 			// Expose for console debugging
 			(window as any).gameModel = this.model;
@@ -48,24 +45,6 @@ export class GameController {
 
 	hide(): void {
 		this.view.hide();
-	}
-
-	private wireStateClickHandlers(): void {
-		const stateCodes = this.view.getAllStateCodes();
-		stateCodes.forEach((code) => {
-			const pathElement = this.view.getPathElement(code);
-			if (pathElement) {
-				pathElement.style.cursor = 'pointer';
-				pathElement.addEventListener('click', () => this.onStateClicked(code));
-			}
-		});
-	}
-
-	private onStateClicked(code: string): void {
-		// Update the model (pure data change)
-		this.model.guessState(code);
-		// Tell the view to refresh from the model
-		this.view.updateViewFromModel();
 	}
 
 	/** Expose a public method to refresh the view (useful for console debugging). */

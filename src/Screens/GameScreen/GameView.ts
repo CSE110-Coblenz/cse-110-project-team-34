@@ -317,32 +317,20 @@ export class GameView {
         return this.svgPathElements.get(stateCode);
     }
 
-    /** Sync the view with the model's current state. */
-    updateViewFromModel(): void {
-        const states = this.model.getAllStates();
-        states.forEach((state, code) => {
-            const pathElement = this.svgPathElements.get(code);
-            if (!pathElement) return;
+	/** Sync the view with the model's current state. */
+	updateViewFromModel(): void {
+		const states = this.model.getAllStates();
+		states.forEach((state, code) => {
+			const pathElement = this.svgPathElements.get(code);
+			if (!pathElement) return;
 
-            // Update color
-            pathElement.setAttribute('fill', state.getColor());
+			// Update color
+			pathElement.setAttribute('fill', state.getColor());
 
-            // Update highlight opacity
-            pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
-
-            // Optional: add visual styling for guessed states
-            if (state.getIsGuessed()) {
-                // Example: add a class or stroke
-                pathElement.style.stroke = '#000';
-                pathElement.style.strokeWidth = '2';
-            } else {
-                pathElement.style.stroke = '';
-                pathElement.style.strokeWidth = '';
-            }
-        });
-    }
-
-    /** Get all state codes currently in the view. */
+			// Update highlight opacity
+			pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
+		});
+	}    /** Get all state codes currently in the view. */
     getAllStateCodes(): string[] {
         return Array.from(this.svgPathElements.keys());
     }

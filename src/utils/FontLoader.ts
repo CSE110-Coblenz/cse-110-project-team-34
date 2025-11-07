@@ -3,6 +3,8 @@
 
 const FONT_ID = 'app-fonts-lief';
 const PRELOAD_ID = 'app-fonts-preload-lief';
+const KA1_FONT_ID = 'app-fonts-ka1';
+const KA1_PRELOAD_ID = 'app-fonts-preload-ka1';
 
 /** Ensure the 'Lief' font-face is registered in the document. */
 export function ensureLiefFontLoaded(): void {
@@ -28,6 +30,39 @@ export function ensureLiefFontLoaded(): void {
 @font-face {
   font-family: 'Lief';
   src: url('/my custom font/Lief.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+/** Ensure the 'Ka1' font-face is registered in the document. */
+export function ensureKa1FontLoaded(): void {
+    if (typeof document === 'undefined') return;
+
+    // Add a <link rel="preload"> for faster fetch (safe to add once)
+    if (!document.getElementById(KA1_PRELOAD_ID)) {
+        const link = document.createElement('link');
+        link.id = KA1_PRELOAD_ID;
+        link.rel = 'preload';
+        link.as = 'font';
+        link.crossOrigin = '';
+        link.href = '/my custom font/ka1.ttf';
+        document.head.appendChild(link);
+    }
+
+    // Inject @font-face only once
+    if (!document.getElementById(KA1_FONT_ID)) {
+        const style = document.createElement('style');
+        style.id = KA1_FONT_ID;
+        style.type = 'text/css';
+        style.textContent = `
+@font-face {
+  font-family: 'Ka1';
+  src: url('/my custom font/ka1.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

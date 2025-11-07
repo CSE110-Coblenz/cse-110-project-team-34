@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { ensureLiefFontLoaded, waitForFontsReady } from '../../utils/FontLoader';
+import { ensureLiefFontLoaded, ensureKa1FontLoaded, waitForFontsReady } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
 
 // Export the class so main.ts (or ViewManager.ts) can import it
@@ -11,6 +11,7 @@ export class MenuView {
 	private contentLayer: Konva.Layer;
 	private backgroundImage: Konva.Image | null = null;
 	private overlayBackgroundImage: Konva.Image | null = null;
+	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -21,19 +22,27 @@ export class MenuView {
 	constructor(stage: Konva.Stage) {
 		this.stage = stage;
 
-		// Ensure the custom 'Lief' font is registered early
+		// Ensure the custom fonts are registered early
 		ensureLiefFontLoaded();
+		ensureKa1FontLoaded();
 		
 		// Create background layer first (renders behind everything)
 		this.backgroundLayer = new Konva.Layer();
 		this.stage.add(this.backgroundLayer);
+		// Set canvas z-index via DOM
+		const bgCanvas = this.backgroundLayer.getCanvas()._canvas as HTMLCanvasElement;
+		bgCanvas.style.zIndex = '0';
 		
 		// Load and add the background image
 		this.loadBackgroundImage();
 		
 		// Create content layer for buttons (renders on top of background)
 		this.contentLayer = new Konva.Layer();
+		this.contentLayer.setZIndex(10); // Ensure content is above the GIF
 		this.stage.add(this.contentLayer);
+		// Set canvas z-index via DOM to be above the GIF
+		const contentCanvas = this.contentLayer.getCanvas()._canvas as HTMLCanvasElement;
+		contentCanvas.style.zIndex = '10';
 		
 		this.group = new Konva.Group();
 		this.contentLayer.add(this.group);
@@ -186,12 +195,12 @@ export class MenuView {
 		// Add all three sections to the main menu group
 		this.group.add(this.practiceButton, this.classicButton, this.crackedButton);
 
-		// Minimal: add a single text label using the custom 'Lief' font
+		// Add title text using the Ka1 font
 		const sampleText = new Konva.Text({
 			text: 'STATE OF PANIC',
-			fontFamily: 'Lief',
-			fontSize: 36,
-			fill: 'yellow',
+			fontFamily: 'Ka1',
+			fontSize: 72,
+			fill: 'white',
 			x: 0,
 			y: 20,
 			width: width,
@@ -211,66 +220,105 @@ export class MenuView {
 	}
 
 	/**
-	 * Load the background stone image
+	 * Load the background images
 	 */
 	private loadBackgroundImage(): void {
+		// Load the base background image (behind everything)
+		const baseImageObj = new Image();
+		baseImageObj.onload = () => {
+			// Create Konva image with NN scaling (pixel-art rendering)
+			const baseBackground = createPixelImage(baseImageObj, { x: 0, y: 0 });
+			
+			// Scale to fill the entire stage
+			const scaleX = this.stage.width() / baseImageObj.width;
+			const scaleY = this.stage.height() / baseImageObj.height;
+			const scale = Math.max(scaleX, scaleY); // Cover the entire stage
+			
+			baseBackground.scaleX(scale);
+			baseBackground.scaleY(scale);
+			
+			// Center the scaled image on the stage
+			const scaledWidth = baseImageObj.width * scale;
+			const scaledHeight = baseImageObj.height * scale;
+			const centerX = (this.stage.width() - scaledWidth) / 2;
+			const centerY = (this.stage.height() - scaledHeight) / 2;
+			baseBackground.x(centerX);
+			baseBackground.y(centerY);
+			
+			// Add to background layer (at the bottom)
+			this.backgroundLayer.add(baseBackground);
+			baseBackground.moveToBottom();
+			this.backgroundLayer.draw();
+			
+			console.log('✓ Base background image loaded for menu');
+		};
+		
+		baseImageObj.onerror = () => {
+			console.error('❌ Failed to load base background image');
+		};
+		
+		// Set the base background source
+		baseImageObj.src = '/Humble Gift - Paper UI System v1.1/background image menu.jpg';
+		
+		// Load the overlay background image (book desk)
 		const imageObj = new Image();
 		imageObj.onload = () => {
 			// Create Konva image (pixel-art rendering)
 			this.backgroundImage = createPixelImage(imageObj, { x: 0, y: 0 });
 			
-			// Scale the image to fill the entire stage (stretch to corners)
-			const scaleX = this.stage.width() / imageObj.width;
-			const scaleY = this.stage.height() / imageObj.height;
+			// Scale to custom size
+			this.backgroundImage.scaleX(1.8);
+			this.backgroundImage.scaleY(1.55);
 			
-			// Use independent scaling for width and height to fill the entire screen
-			this.backgroundImage.scaleX(scaleX);
-			this.backgroundImage.scaleY(scaleY);
+			// Center the scaled image on the stage
+			const scaledWidth = imageObj.width * 1.8;
+			const scaledHeight = imageObj.height * 1.55;
+			const centerX = (this.stage.width() - scaledWidth) / 2;
+			const centerY = (this.stage.height() - scaledHeight) / 2;
+			this.backgroundImage.x(centerX);
+			this.backgroundImage.y(centerY);
 			
-			// Position at top-left corner (0, 0) - image will stretch to fill screen
-			this.backgroundImage.x(0);
-			this.backgroundImage.y(0);
-			
-			// Add to background layer
+			// Add to background layer (on top of base background)
 			this.backgroundLayer.add(this.backgroundImage);
 			this.backgroundLayer.draw();
 			
-			console.log('✓ Background stone image loaded for menu');
+			console.log('✓ Overlay background image loaded for menu');
 		};
 		
 		imageObj.onerror = () => {
-			console.error('❌ Failed to load menu background image');
+			console.error('❌ Failed to load overlay background image');
 		};
 		
-		// Set the image source - use forward slashes for web paths (served from /public)
+		// Set the overlay image source - use forward slashes for web paths (served from /public)
 		imageObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/1.png';
 
-		// Load the secondary background overlay that appears above the base background
-		const overlayObj = new Image();
-		overlayObj.onload = () => {
-			this.overlayBackgroundImage = createPixelImage(overlayObj, { x: 0, y: 0 });
-
-			// Scale overlay to fill the entire stage
-			const overlayScaleX = this.stage.width() / overlayObj.width;
-			const overlayScaleY = this.stage.height() / overlayObj.height;
-			this.overlayBackgroundImage.scaleX(overlayScaleX);
-			this.overlayBackgroundImage.scaleY(overlayScaleY);
-			this.overlayBackgroundImage.x(0);
-			this.overlayBackgroundImage.y(0);
-
-			// Add AFTER the base background so it sits on top of it but remains in the background layer
-			this.backgroundLayer.add(this.overlayBackgroundImage);
-			this.backgroundLayer.draw();
-
-			console.log('✓ Menu overlay background image loaded');
+		// Load the animated GIF overlay as a DOM element (not Konva) so it can animate
+		this.overlayGifElement = document.createElement('img');
+		this.overlayGifElement.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/geunyeong-park-book.gif';
+		this.overlayGifElement.style.position = 'absolute';
+		this.overlayGifElement.style.top = '38%';
+		this.overlayGifElement.style.left = '50%';
+		this.overlayGifElement.style.transform = 'translate(-50%, -50%) scale(1.5)'; // Center and scale to 1.5x
+		this.overlayGifElement.style.transformOrigin = 'center center'; // Scale from center
+		this.overlayGifElement.style.width = 'auto'; // Use original size (scale handles sizing)
+		this.overlayGifElement.style.height = 'auto'; // Use original size (scale handles sizing)
+		this.overlayGifElement.style.pointerEvents = 'none'; // Don't block clicks on buttons
+		this.overlayGifElement.style.zIndex = '5'; // Above background (z=0) but below content layer (z=10)
+		this.overlayGifElement.style.imageRendering = 'pixelated'; // Crisp pixel art
+		this.overlayGifElement.style.display = 'none'; // Hidden by default
+		
+		// Add to the stage container (between background and content layers)
+		const stageContainer = this.stage.container();
+		stageContainer.style.position = 'relative'; // Ensure container is positioned
+		stageContainer.appendChild(this.overlayGifElement);
+		
+		this.overlayGifElement.onload = () => {
+			console.log('✓ Menu overlay animated GIF loaded');
 		};
-
-		overlayObj.onerror = () => {
-			console.error('❌ Failed to load menu overlay background image');
+		
+		this.overlayGifElement.onerror = () => {
+			console.error('❌ Failed to load menu overlay animated GIF');
 		};
-
-		// Web-served path from /public to the provided book.png
-		overlayObj.src = '/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/book.png';
 	}
 
 	// Method for the App/ViewManager to get this screen's elements
@@ -283,6 +331,9 @@ export class MenuView {
 		this.backgroundLayer.show();
 		this.contentLayer.show();
 		this.group.show();
+		if (this.overlayGifElement) {
+			this.overlayGifElement.style.display = 'block';
+		}
 	}
 
 	// Method for the App/ViewManager to hide this screen
@@ -290,5 +341,8 @@ export class MenuView {
 		this.backgroundLayer.hide();
 		this.contentLayer.hide();
 		this.group.hide();
+		if (this.overlayGifElement) {
+			this.overlayGifElement.style.display = 'none';
+		}
 	}
 }
