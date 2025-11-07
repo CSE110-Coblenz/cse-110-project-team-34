@@ -9,6 +9,7 @@ export class MenuView {
 	private stage: Konva.Stage;
 	private backgroundLayer: Konva.Layer;
 	private contentLayer: Konva.Layer;
+	private overlayLayer: Konva.Layer; // New layer for black/white screen overlays
 	private backgroundImage: Konva.Image | null = null;
 	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
@@ -45,12 +46,30 @@ export class MenuView {
 		const contentCanvas = this.contentLayer.getCanvas()._canvas as HTMLCanvasElement;
 		contentCanvas.style.zIndex = '10';
 		
+		// Create overlay layer for black/white screen effects (above everything)
+		this.overlayLayer = new Konva.Layer();
+		this.stage.add(this.overlayLayer);
+		const overlayCanvas = this.overlayLayer.getCanvas()._canvas as HTMLCanvasElement;
+		overlayCanvas.style.zIndex = '100'; // Above all content
+		
 		this.group = new Konva.Group();
 		this.contentLayer.add(this.group);
 
 		// Get the full screen dimensions from the stage
 		const width = this.stage.width();
 		const height = this.stage.height();
+		
+		// Create initial black screen overlay
+		const blackScreen = new Konva.Rect({
+			x: 0,
+			y: 0,
+			width: width,
+			height: height,
+			fill: 'black',
+			opacity: 1,
+		});
+		this.overlayLayer.add(blackScreen);
+		this.overlayLayer.draw();
 
 		// --- Create stacked buttons (vertical layout) ---
 		const buttonWidth = 300;
@@ -77,7 +96,7 @@ export class MenuView {
 
 		const practiceText = new Konva.Text({
 			text: 'PRACTICE',
-			fontSize: 24,
+			fontSize: 48,
 			fontFamily: 'DungeonFont',
 			x: 0,
 			y: 0,
@@ -119,7 +138,7 @@ export class MenuView {
 
 		const classicText = new Konva.Text({
 			text: 'CLASSIC',
-			fontSize: 24,
+			fontSize: 48,
 			fontFamily: 'DungeonFont',
 			x: 0,
 			y: 0,
@@ -161,7 +180,7 @@ export class MenuView {
 
 		const crackedText = new Konva.Text({
 			text: 'CRACKED',
-			fontSize: 24,
+			fontSize: 48,
 			fontFamily: 'DungeonFont',
 			x: 0,
 			y: 0,
@@ -253,9 +272,9 @@ export class MenuView {
 		panicText.scaleX(5);
 		panicText.scaleY(5);
 		
-		// Add to layer
-		this.contentLayer.add(stateText, ofText, panicText);
-		this.contentLayer.draw();
+		// Add title text to overlay layer (above black screen)
+		this.overlayLayer.add(stateText, ofText, panicText);
+		this.overlayLayer.draw();
 		
 		// Create landing animations - 2x faster (0.3s duration)
 		const stateTween = new Konva.Tween({
@@ -293,9 +312,43 @@ export class MenuView {
 		
 		// Play animations in sequence with 1.0s delay between each
 		waitForFontsReady().then(() => {
+			// Text animations
 			stateTween.play();
 			setTimeout(() => ofTween.play(), 1000);    // OF starts 1.0s after STATE
 			setTimeout(() => panicTween.play(), 2000); // PANIC starts 1.0s after OF
+			
+			// After all text animations complete + 0.8s delay (2000ms + 300ms + 800ms = 3100ms total)
+			setTimeout(() => {
+				// Remove black screen
+				blackScreen.destroy();
+				this.overlayLayer.draw();
+				
+				// Create white screen overlay
+				const whiteScreen = new Konva.Rect({
+					x: 0,
+					y: 0,
+					width: width,
+					height: height,
+					fill: 'white',
+					opacity: 1,
+				});
+				this.overlayLayer.add(whiteScreen);
+				this.overlayLayer.draw();
+				
+				// Fade out white screen
+				const whiteFadeTween = new Konva.Tween({
+					node: whiteScreen,
+					duration: 1.5, // 1.5 seconds fade
+					opacity: 0,
+					easing: Konva.Easings.EaseInOut,
+					onFinish: () => {
+						// Remove white screen completely once fade is done
+						whiteScreen.destroy();
+						this.overlayLayer.draw();
+					}
+				});
+				whiteFadeTween.play();
+			}, 3100); // Start white fade 0.8s after PANIC animation finishes
 		});
 
 		// Start hidden by default, the App/ViewManager will show it
@@ -414,6 +467,7 @@ export class MenuView {
 	show() {
 		this.backgroundLayer.show();
 		this.contentLayer.show();
+		this.overlayLayer.show();
 		this.group.show();
 		if (this.overlayGifElement) {
 			this.overlayGifElement.style.display = 'block';
@@ -424,6 +478,7 @@ export class MenuView {
 	hide() {
 		this.backgroundLayer.hide();
 		this.contentLayer.hide();
+		this.overlayLayer.hide();
 		this.group.hide();
 		if (this.overlayGifElement) {
 			this.overlayGifElement.style.display = 'none';
