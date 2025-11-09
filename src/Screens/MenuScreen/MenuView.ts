@@ -34,6 +34,7 @@ export class MenuView {
 	private bookBounceIntervalId: number | null = null;
 	// Prevent duplicate exit animations
 	private isExiting: boolean = false;
+
 	private chingSound: HTMLAudioElement; // Preloaded audio
 	private backgroundMusic: HTMLAudioElement; // Looping background music
 	private introVoice: HTMLAudioElement; // Intro voice audio
@@ -596,6 +597,7 @@ export class MenuView {
 								if (this.visualizerGroup) this.visualizerGroup.show();
 								this.startVisualizer();
 							}, 5800);
+
 					}
 				});
 				whiteFadeTween.play();
@@ -703,7 +705,7 @@ export class MenuView {
 				points: [sx, sy, sx, sy],
 				stroke: 'rgba(255,255,255,0.85)',
 				strokeWidth: 3,
-				lineCap: 'round',
+				lineCap: 'butt',
 			});
 			this.visualizerBars.push(bar);
 			this.visualizerGroup.add(bar);
@@ -751,16 +753,18 @@ export class MenuView {
 	/** Stop and hide the visualizer */
 	private stopVisualizer(): void {
 		if (this.visualizerAnim) {
-			this.visualizerAnim.stop();
-			this.visualizerAnim = null;
+		  this.visualizerAnim.stop();
+		  this.visualizerAnim = null;
 		}
 		if (this.visualizerGroup) {
-			this.visualizerGroup.hide();
+		  this.visualizerGroup.hide();
 		}
 		if (this.visualizerLayer) {
-			this.visualizerLayer.batchDraw();
+		  this.visualizerLayer.visible(false);   // <— add this line
+		  this.visualizerLayer.batchDraw();
 		}
 	}
+	  
 
 	/** Stop the continuous title flashing and restore to white */
 	private stopTitleFlash(): void {
@@ -978,6 +982,16 @@ export class MenuView {
 		}
 		// Stop background music when hiding the menu
 		this.stopMusic();
+		
+		// Properly clean up the visualizer
+		this.stopVisualizer();
+		if (this.visualizerLayer) {
+			this.visualizerLayer.destroy();
+			this.visualizerLayer = null as any;
+		  }
+		  this.visualizerGroup = null as any;
+		  this.visualizerBars = [];
+		  this.mediaElementSource = null as any;
 	}
 	
 	// Method to stop the background music (called when transitioning to game screen)
