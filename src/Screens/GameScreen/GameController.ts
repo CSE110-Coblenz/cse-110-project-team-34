@@ -2,6 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 import { GameModel } from "./GameModel";
+import { MULTIPLIER } from "../../gameConstants.ts"; 
 // Uncomment to enable sandbox testing
 // import { runSandbox } from "./sandbox";
 
@@ -25,6 +26,9 @@ export class GameController {
 			// Sync the view to show the model's initial state
 			this.view.updateViewFromModel();
 
+			// initialize multiplier display
+			this.view.initializeMultiplier();
+
 			// Expose for console debugging
 			(window as any).gameModel = this.model;
 			console.log('💡 Access gameModel in console: window.gameModel');
@@ -37,6 +41,11 @@ export class GameController {
 		});
 	}	getView() {
 		return this.view;
+	}
+
+	// we will call this when the player answers a state correctly
+	whenCorrectAnswer(): void {
+		this.view.increaseMultiplier();
 	}
 
 	show(): void {

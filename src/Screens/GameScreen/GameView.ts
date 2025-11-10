@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
+import { MULTIPLIER } from '../../gameConstants';
 
 // Export the class so ViewManager.ts can import it
 export class GameView {
@@ -20,6 +21,11 @@ export class GameView {
     private overlayBaseX: number | null = null;
     private overlayBaseY: number | null = null;
     private model: GameModel;
+
+    //FOR THE MULTIPLIER 
+    private multiplier = MULTIPLIER.STARTING_VALUE;
+    private multiplierLayer!: Konva.Layer;
+    private mutliplierText!: Konva.Text;
 
     // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage, model: GameModel) {
@@ -380,6 +386,39 @@ export class GameView {
             this.leftSideImage.y(y);
             this.backgroundLayer.batchDraw();
         }
+    }
+
+    //MULTIPLIER METHODS
+    initializeMultiplier() {
+        this.multiplierLayer = new Konva.Layer();
+        this.stage.add(this.multiplierLayer);
+
+        this.mutliplierText = new Konva.Text({
+            x: this.stage.width() - 120,
+            y: 20,
+            text: `${this.multiplier.toFixed(1)}x`, //displays multiplier number
+            fontSize: 50,
+            fontFamily: 'Times New Roman',
+            fill: 'white', 
+            align:'right',   //want multiplier to be on the right side of the screem
+        });
+
+        this.multiplierLayer.add(this.mutliplierText);
+        this.startMultiplierDecrease();
+    }
+
+    private startMultiplierDecrease() {
+        setInterval(() => {
+            this.multiplier = Math.max(MULTIPLIER.FLOOR_VALUE, (this.multiplier-MULTIPLIER.RATE_OF_DECREASING_MULTIPLIER));
+            this.mutliplierText.text(`${this.multiplier.toFixed(1)}x`);  
+            this.multiplierLayer.batchDraw();  //redrawing layer
+        }, 1000)  //function runs every 1000 ms (1 second)
+    }
+
+    increaseMultiplier() {
+        this.multiplier += MULTIPLIER.INCREMENT_AMOUNT;
+        this.mutliplierText.text(`${this.multiplier.toFixed(1)}x`);
+        this.multiplierLayer.batchDraw();   //redrawing layer
     }
 
     // show() method is required by ViewManager.ts
