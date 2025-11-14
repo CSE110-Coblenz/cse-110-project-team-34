@@ -293,6 +293,10 @@ export class GameView {
 
             this.svgPathElements.set(stateCode, path as SVGPathElement);
             stateCodes.push(stateCode);
+            
+            // Add click handler to each state
+            path.addEventListener('click', () => this.handleStateClick(stateCode));
+            path.style.cursor = 'pointer';
         });
 
         if (stateCodes.length === 0) {
@@ -305,6 +309,34 @@ export class GameView {
     /** Get a path element by state code (for click handlers). */
     getPathElement(stateCode: string): SVGPathElement | undefined {
         return this.svgPathElements.get(stateCode);
+    }
+
+    /** Handle state click - highlight clicked state and its neighbors */
+    private handleStateClick(stateCode: string): void {
+        console.log(`🖱️ State clicked: ${stateCode}`);
+        
+        // Reset all states to original color first
+        this.model.getAllStates().forEach((state) => {
+            state.color(state.originalColor);
+        });
+
+        // Set clicked state to pink
+        const clickedState = this.model.getState(stateCode);
+        if (clickedState) {
+            clickedState.color('pink');
+        }
+
+        // Set neighbor states to red
+        const neighbors = this.model.getNeighbors(stateCode);
+        neighbors.forEach((neighborCode) => {
+            const neighborState = this.model.getState(neighborCode);
+            if (neighborState) {
+                neighborState.color('red');
+            }
+        });
+
+        // Update the view to reflect the changes
+        this.updateViewFromModel();
     }
 
     /** Sync the view with the model's current state. */
