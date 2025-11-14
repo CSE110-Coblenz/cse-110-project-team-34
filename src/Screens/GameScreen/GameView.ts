@@ -2,7 +2,6 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { MULTIPLIER } from '../../gameConstants';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -31,7 +30,6 @@ export class GameView {
     private model: GameModel;
 
     //FOR THE MULTIPLIER 
-    private multiplier = MULTIPLIER.STARTING_VALUE;
     private multiplierLayer!: Konva.Layer;
     private mutliplierText!: Konva.Text;
 
@@ -301,6 +299,12 @@ export class GameView {
 			// Update highlight opacity
 			pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
 		});
+		
+		// Update multiplier display
+		if (this.mutliplierText) {
+			this.mutliplierText.text(`${this.model.getMultiplier().toFixed(1)}x`);
+			this.multiplierLayer.batchDraw();
+		}
 	}
 
     /** Get all state codes currently in the view. */
@@ -365,7 +369,7 @@ export class GameView {
         this.mutliplierText = new Konva.Text({
             x: this.stage.width() - 120,
             y: 20,
-            text: `${this.multiplier.toFixed(1)}x`, //displays multiplier number
+            text: `${this.model.getMultiplier().toFixed(1)}x`, //displays multiplier number
             fontSize: 50,
             fontFamily: 'Times New Roman',
             fill: 'white', 
@@ -373,21 +377,6 @@ export class GameView {
         });
 
         this.multiplierLayer.add(this.mutliplierText);
-        this.startMultiplierDecrease();
-    }
-
-    private startMultiplierDecrease() {
-        setInterval(() => {
-            this.multiplier = Math.max(MULTIPLIER.FLOOR_VALUE, (this.multiplier-MULTIPLIER.RATE_OF_DECREASING_MULTIPLIER));
-            this.mutliplierText.text(`${this.multiplier.toFixed(1)}x`);  
-            this.multiplierLayer.batchDraw();  //redrawing layer
-        }, 1000)  //function runs every 1000 ms (1 second)
-    }
-
-    increaseMultiplier() {
-        this.multiplier += MULTIPLIER.INCREMENT_AMOUNT;
-        this.mutliplierText.text(`${this.multiplier.toFixed(1)}x`);
-        this.multiplierLayer.batchDraw();   //redrawing layer
     }
 
     // show() method is required by ViewManager.ts

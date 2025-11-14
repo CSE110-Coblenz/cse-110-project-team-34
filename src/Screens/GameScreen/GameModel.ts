@@ -1,3 +1,5 @@
+import { MULTIPLIER } from '../../gameConstants';
+
 // Pure data state - no DOM manipulation (Model should only hold data)
 export class State {
     public code: string; // 2-letter state code (e.g., 'ca', 'tx')
@@ -101,6 +103,7 @@ export class GameModel {
     private states: Map<string, State> = new Map();
     score: number = 0;
     timerSeconds: number = 0;
+    private multiplier: number = MULTIPLIER.STARTING_VALUE;
 
     /** Initialize states from a list of state codes. */
     initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
@@ -148,6 +151,20 @@ export class GameModel {
     resetGame(): void {
         this.score = 0;
         this.timerSeconds = 0;
+        this.multiplier = MULTIPLIER.STARTING_VALUE;
         this.resetAllStates();
+    }
+
+    // --- Multiplier methods ---
+    getMultiplier(): number {
+        return this.multiplier;
+    }
+
+    increaseMultiplier(): void {
+        this.multiplier += MULTIPLIER.INCREMENT_AMOUNT;
+    }
+
+    decreaseMultiplier(): void {
+        this.multiplier = Math.max(MULTIPLIER.FLOOR_VALUE, this.multiplier - MULTIPLIER.RATE_OF_DECREASING_MULTIPLIER);
     }
 }
