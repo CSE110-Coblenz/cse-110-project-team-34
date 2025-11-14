@@ -104,6 +104,7 @@ export class GameModel {
     score: number = 0;
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
+    private inputText: string = '';
 
     /** Initialize states from a list of state codes. */
     initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
@@ -166,5 +167,20 @@ export class GameModel {
 
     decreaseMultiplier(): void {
         this.multiplier = Math.max(MULTIPLIER.FLOOR_VALUE, this.multiplier - MULTIPLIER.RATE_OF_DECREASING_MULTIPLIER);
+    }
+
+    // --- Input text methods ---
+    getInputText(): string {
+        return this.inputText;
+    }
+
+    setInputText(text: string): void {
+        // Only allow English letters, max 13 characters
+        const filtered = text.replace(/[^a-zA-Z]/g, '').slice(0, 13);
+        this.inputText = filtered;
+    }
+
+    clearInputText(): void {
+        this.inputText = '';
     }
 }

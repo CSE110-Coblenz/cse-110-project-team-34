@@ -33,6 +33,10 @@ export class GameView {
     private multiplierLayer!: Konva.Layer;
     private mutliplierText!: Konva.Text;
 
+    // FOR THE TEXT INPUT BOX
+    private inputTextLayer!: Konva.Layer;
+    private inputTextDisplay!: Konva.Text;
+
      // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage, model: GameModel) {
         this.stage = stage;
@@ -51,6 +55,9 @@ export class GameView {
 
         // Create a container for the SVG (View only mounts it)
         this.createSVGContainer();
+
+        // Initialize text input
+        this.initializeTextInput();
 
         // Apply initial vertical offset from the model (overlay + map only)
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -115,14 +122,16 @@ export class GameView {
             console.log('✓ Left-side image loaded');
         });
 
-        // 4 Below-overlay image
+        // 4 Below-overlay image (text input background)
         await this.loadImage(this.model.belowOverlayImageSrc, (img) => {
             this.belowOverlayImage = createPixelImage(img, { x: 0, y: 0 });
             this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
             this.belowOverlayImage.scaleY(this.model.belowOverlayImageScaleY);
             this.updateBelowOverlayPosition();
             this.backgroundLayer.add(this.belowOverlayImage);
-            console.log('✓ Below-overlay image loaded');
+            // Position the text input display on top of this image
+            this.updateInputTextDisplay();
+            console.log('✓ Below-overlay image loaded (text input background)');
         });
 
         // Draw them in guaranteed order
@@ -199,6 +208,9 @@ export class GameView {
         const y = overlayTop + overlayDisplayedH + this.model.belowOverlayMarginTop;
         below.x(x);
         below.y(y);
+        
+        // Update text input position when the image moves
+        this.updateInputTextDisplay();
     }
 
     /** Attach a parsed SVG to the View's container and style it. */
@@ -361,6 +373,69 @@ export class GameView {
         }
     }
 
+    //TEXT INPUT METHODS
+    initializeTextInput() {
+        this.inputTextLayer = new Konva.Layer();
+        this.stage.add(this.inputTextLayer);
+
+        this.inputTextDisplay = new Konva.Text({
+            x: 0,
+            y: 0,
+            text: '',
+            fontSize: 40,
+            fontFamily: 'Arial',
+            fill: '#333333',
+            align: 'center',
+            verticalAlign: 'middle',
+        });
+
+        this.inputTextLayer.add(this.inputTextDisplay);
+
+        // Set up keyboard event listeners
+        window.addEventListener('keydown', this.handleKeyPress.bind(this));
+    }
+
+    private handleKeyPress(e: KeyboardEvent): void {
+        // Only handle if the game view is visible
+        if (this.backgroundLayer.isVisible() === false) return;
+
+        if (e.key === 'Enter') {
+            // Reset the text input
+            this.model.clearInputText();
+            this.updateInputTextDisplay();
+        } else if (e.key === 'Backspace') {
+            // Remove last character
+            const currentText = this.model.getInputText();
+            this.model.setInputText(currentText.slice(0, -1));
+            this.updateInputTextDisplay();
+        } else if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+            // Add the character (model will handle validation and length limit)
+            const currentText = this.model.getInputText();
+            this.model.setInputText(currentText + e.key);
+            this.updateInputTextDisplay();
+        }
+    }
+
+    private updateInputTextDisplay(): void {
+        const text = this.model.getInputText();
+        this.inputTextDisplay.text(text);
+
+        // Position the text centered on the belowOverlayImage
+        if (this.belowOverlayImage) {
+            const imgX = this.belowOverlayImage.x();
+            const imgY = this.belowOverlayImage.y();
+            const imgWidth = this.belowOverlayImage.width() * this.belowOverlayImage.scaleX();
+            const imgHeight = this.belowOverlayImage.height() * this.belowOverlayImage.scaleY();
+
+            // Center the text
+            this.inputTextDisplay.width(imgWidth);
+            this.inputTextDisplay.x(imgX);
+            this.inputTextDisplay.y(imgY + imgHeight / 2 - 20); // Vertically centered
+        }
+
+        this.inputTextLayer.batchDraw();
+    }
+
     //MULTIPLIER METHODS
     initializeMultiplier() {
         this.multiplierLayer = new Konva.Layer();
@@ -383,6 +458,9 @@ export class GameView {
     show() {
         this.backgroundLayer.show();
         this.layer.show();
+        if (this.inputTextLayer) {
+            this.inputTextLayer.show();
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
         }
@@ -392,6 +470,9 @@ export class GameView {
     hide() {
         this.backgroundLayer.hide();
         this.layer.hide();
+        if (this.inputTextLayer) {
+            this.inputTextLayer.hide();
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
         }
@@ -402,7 +483,12 @@ export class GameView {
             this.svgContainer.remove();
             this.svgContainer = null;
         }
+        // Remove keyboard listener
+        window.removeEventListener('keydown', this.handleKeyPress.bind(this));
         this.backgroundLayer.destroy();
         this.layer.destroy();
+        if (this.inputTextLayer) {
+            this.inputTextLayer.destroy();
+        }
     }
 }

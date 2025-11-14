@@ -3,6 +3,9 @@ import { GameController } from "./Screens/GameScreen/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
 import Konva from 'konva';
 
+// Developer flag: set to true to skip menu and go directly to game screen
+const developerOnly_skipMenuScreen = true;
+
 enum GameScreen {
     Menu,
     Game,
@@ -37,8 +40,12 @@ class Main {
             this.layer.draw();
         });
 
-        // Start the menu screen (or your initial screen)
-        this.showMenuScreen();
+        // Start the appropriate screen based on developer flag
+        if (developerOnly_skipMenuScreen) {
+            this.showGameScreen();
+        } else {
+            this.showMenuScreen();
+        }
     }
 
     showMenuScreen() {
