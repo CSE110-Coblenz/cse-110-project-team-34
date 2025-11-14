@@ -105,6 +105,7 @@ export class GameModel {
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
     private inputText: string = '';
+    private inputHistory: string[] = [];
 
     /** Initialize states from a list of state codes. */
     initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
@@ -182,5 +183,17 @@ export class GameModel {
 
     clearInputText(): void {
         this.inputText = '';
+    }
+
+    submitInputText(): void {
+        // Add current input to history if it's not empty
+        if (this.inputText.trim().length > 0) {
+            this.inputHistory.push(this.inputText);
+        }
+        this.inputText = '';
+    }
+
+    getInputHistory(): string[] {
+        return this.inputHistory;
     }
 }

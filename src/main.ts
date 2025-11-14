@@ -1,10 +1,8 @@
 import { MenuController } from "./Screens/MenuScreen/MenuController";
 import { GameController } from "./Screens/GameScreen/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
+import { developerOnly_skipMenuScreen } from "./Screens/GameScreen/sandbox";
 import Konva from 'konva';
-
-// Developer flag: set to true to skip menu and go directly to game screen
-const developerOnly_skipMenuScreen = true;
 
 enum GameScreen {
     Menu,

@@ -37,6 +37,10 @@ export class GameView {
     private inputTextLayer!: Konva.Layer;
     private inputTextDisplay!: Konva.Text;
 
+    // FOR THE INPUT HISTORY LIST
+    private historyLayer!: Konva.Layer;
+    private historyTextDisplay!: Konva.Text;
+
      // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage, model: GameModel) {
         this.stage = stage;
@@ -58,6 +62,9 @@ export class GameView {
 
         // Initialize text input
         this.initializeTextInput();
+
+        // Initialize input history display
+        this.initializeHistoryDisplay();
 
         // Apply initial vertical offset from the model (overlay + map only)
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -119,7 +126,9 @@ export class GameView {
             this.leftSideImage.y(y);
 
             this.backgroundLayer.add(this.leftSideImage);
-            console.log('✓ Left-side image loaded');
+            // Position the history text on top of this image
+            this.updateHistoryDisplay();
+            console.log('✓ Left-side image loaded (input history background)');
         });
 
         // 4 Below-overlay image (text input background)
@@ -400,9 +409,10 @@ export class GameView {
         if (this.backgroundLayer.isVisible() === false) return;
 
         if (e.key === 'Enter') {
-            // Reset the text input
-            this.model.clearInputText();
+            // Submit the text input to history and reset
+            this.model.submitInputText();
             this.updateInputTextDisplay();
+            this.updateHistoryDisplay();
         } else if (e.key === 'Backspace') {
             // Remove last character
             const currentText = this.model.getInputText();
@@ -436,6 +446,54 @@ export class GameView {
         this.inputTextLayer.batchDraw();
     }
 
+    //INPUT HISTORY LIST METHODS
+    initializeHistoryDisplay() {
+        this.historyLayer = new Konva.Layer();
+        this.stage.add(this.historyLayer);
+
+        this.historyTextDisplay = new Konva.Text({
+            x: 0,
+            y: 0,
+            text: '',
+            fontSize: 24,
+            fontFamily: 'Arial',
+            fill: '#2c3e50',
+            align: 'left',
+            lineHeight: 1.5,
+            padding: 10,
+        });
+
+        this.historyLayer.add(this.historyTextDisplay);
+    }
+
+    private updateHistoryDisplay(): void {
+        const history = this.model.getInputHistory();
+        
+        // Create a list of all inputs without enumeration
+        const historyText = history.join('\n');
+        this.historyTextDisplay.text(historyText);
+
+        // Position the text on the left-side image
+        if (this.leftSideImage) {
+            const imgX = this.leftSideImage.x();
+            const imgY = this.leftSideImage.y();
+            const imgWidth = this.leftSideImage.width() * this.leftSideImage.scaleX();
+            const imgHeight = this.leftSideImage.height() * this.leftSideImage.scaleY();
+            
+            // Account for rotation: the image is rotated -90 degrees
+            // After rotation, the top of the image is on the left side
+            // Calculate position to start from the top of the rotated image
+            const topLeftX = imgX - imgHeight / 2;
+            const topLeftY = imgY - imgWidth / 2;
+
+            this.historyTextDisplay.x(topLeftX + 80); // 30 pixels from left edge
+            this.historyTextDisplay.y(topLeftY + 30); // 10 pixels from top
+            this.historyTextDisplay.width(imgHeight - 40); // Fit within rotated width
+        }
+
+        this.historyLayer.batchDraw();
+    }
+
     //MULTIPLIER METHODS
     initializeMultiplier() {
         this.multiplierLayer = new Konva.Layer();
@@ -461,6 +519,9 @@ export class GameView {
         if (this.inputTextLayer) {
             this.inputTextLayer.show();
         }
+        if (this.historyLayer) {
+            this.historyLayer.show();
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
         }
@@ -472,6 +533,9 @@ export class GameView {
         this.layer.hide();
         if (this.inputTextLayer) {
             this.inputTextLayer.hide();
+        }
+        if (this.historyLayer) {
+            this.historyLayer.hide();
         }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
@@ -489,6 +553,9 @@ export class GameView {
         this.layer.destroy();
         if (this.inputTextLayer) {
             this.inputTextLayer.destroy();
+        }
+        if (this.historyLayer) {
+            this.historyLayer.destroy();
         }
     }
 }
