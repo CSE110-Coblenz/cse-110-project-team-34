@@ -4,6 +4,14 @@ import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
 import { MULTIPLIER } from '../../gameConstants';
 
+// helper for sequential layer drawing
+async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
+  for (const layer of layers) {
+    layer.draw();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+}
+
 // Export the class so ViewManager.ts can import it
 export class GameView {
 
@@ -27,7 +35,7 @@ export class GameView {
     private multiplierLayer!: Konva.Layer;
     private mutliplierText!: Konva.Text;
 
-    // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
+     // The constructor must accept a Konva.Stage, as ViewManager.ts passes one in.
     constructor(stage: Konva.Stage, model: GameModel) {
         this.stage = stage;
         this.model = model;
@@ -36,21 +44,119 @@ export class GameView {
         this.backgroundLayer = new Konva.Layer();
         this.stage.add(this.backgroundLayer);
         
-    // Ensure custom 'Lief' font is available for any future text usage on Game screen
-    ensureLiefFontLoaded();
-
-        // Load and add the background image
-        this.loadBackgroundImage();
+        // Ensure custom 'Lief' font is available for any future text usage on Game screen
+        ensureLiefFontLoaded();
         
         // Create main layer for other content
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
-    // Create a container for the SVG (View only mounts it)
-    this.createSVGContainer();
+        // Create a container for the SVG (View only mounts it)
+        this.createSVGContainer();
 
-    // Apply initial vertical offset from the model (overlay + map only)
-    this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
+        // Apply initial vertical offset from the model (overlay + map only)
+        this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
+    }
+
+    /** Initialize and load assets in deterministic order */
+    async init(): Promise<void> {
+        await this.loadImagesSequentially();
+        await drawSequentially(this.backgroundLayer, this.layer);
+    }
+
+    /** sequential image loading to avoid race conditions */
+    private async loadImagesSequentially(): Promise<void> {
+        // 1 Base background
+        await this.loadImage(this.model.baseBackgroundSrc, (img) => {
+            this.backgroundImage = this.createScaledImage(img, true);
+            this.backgroundLayer.add(this.backgroundImage);
+            console.log('✓ Base background loaded');
+        });
+
+        // 2 Overlay (centered and scaled)
+        await this.loadImage(this.model.overlayBackgroundSrc, (img) => {
+            this.overlayBackgroundImage = this.createScaledImage(img, false);
+            const overlay = this.overlayBackgroundImage;
+            overlay.scaleX(this.model.overlayScaleX);
+            overlay.scaleY(this.model.overlayScaleY);
+
+            if (this.model.centerOverlay) {
+                const displayedW = overlay.width() * overlay.scaleX();
+                const displayedH = overlay.height() * overlay.scaleY();
+                overlay.x((this.stage.width() - displayedW) / 2);
+                overlay.y((this.stage.height() - displayedH) / 2);
+            }
+
+            this.overlayBaseX = overlay.x();
+            this.overlayBaseY = overlay.y();
+            this.applyOverlayMapOffset();
+
+            this.backgroundLayer.add(overlay);
+            console.log('✓ Overlay background loaded');
+        });
+
+        // 3 Left-side image
+        await this.loadImage(this.model.leftSideImageSrc, (img) => {
+            this.leftSideImage = createPixelImage(img, { x: 0, y: 0 });
+            this.leftSideImage.scaleX(this.model.leftSideImageScaleX);
+            this.leftSideImage.scaleY(this.model.leftSideImageScaleY);
+            this.leftSideImage.rotation(this.model.leftSideImageRotationDeg);
+
+            const naturalW = img.width;
+            const naturalH = img.height;
+            this.leftSideImage.offsetX(naturalW / 2);
+            this.leftSideImage.offsetY(naturalH / 2);
+
+            const displayedW = naturalW * this.leftSideImage.scaleX();
+            const x = this.model.leftSideImageMarginLeft + displayedW / 2;
+            const y = (this.stage.height() / 2) + (this.model.leftSideImageOffsetY || 0);
+            this.leftSideImage.x(x);
+            this.leftSideImage.y(y);
+
+            this.backgroundLayer.add(this.leftSideImage);
+            console.log('✓ Left-side image loaded');
+        });
+
+        // 4 Below-overlay image
+        await this.loadImage(this.model.belowOverlayImageSrc, (img) => {
+            this.belowOverlayImage = createPixelImage(img, { x: 0, y: 0 });
+            this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
+            this.belowOverlayImage.scaleY(this.model.belowOverlayImageScaleY);
+            this.updateBelowOverlayPosition();
+            this.backgroundLayer.add(this.belowOverlayImage);
+            console.log('✓ Below-overlay image loaded');
+        });
+
+        // Draw them in guaranteed order
+        await drawSequentially(this.backgroundLayer);
+    }
+
+    /** Promise-based image loader */
+    private async loadImage(src: string, onload: (img: HTMLImageElement) => void): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const imageObj = new Image();
+            imageObj.onload = () => {
+                onload(imageObj);
+                resolve();
+            };
+            imageObj.onerror = () => {
+                console.error(`❌ Failed to load image: ${src}`);
+                reject(new Error(`Image failed: ${src}`));
+            };
+            imageObj.src = src;
+        });
+    }
+
+    /** helper to scale and stretch image if needed */
+    private createScaledImage(img: HTMLImageElement, stretch: boolean): Konva.Image {
+        const imageNode = createPixelImage(img, { x: 0, y: 0 });
+        if (stretch) {
+            const scaleX = this.stage.width() / img.width;
+            const scaleY = this.stage.height() / img.height;
+            imageNode.scaleX(scaleX);
+            imageNode.scaleY(scaleY);
+        }
+        return imageNode;
     }
 
     /**
@@ -75,148 +181,7 @@ export class GameView {
         document.body.appendChild(this.svgContainer);
     }
 
-    /**
-     * Load the background parchment image
-     */
-    private loadBackgroundImage(): void {
-        const imageObj = new Image();
-        imageObj.onload = () => {
-            // Create Konva image (pixel-art rendering)
-            this.backgroundImage = createPixelImage(imageObj, { x: 0, y: 0 });
-            
-            // Scale the image to fill the entire stage (stretch to corners)
-            const scaleX = this.stage.width() / imageObj.width;
-            const scaleY = this.stage.height() / imageObj.height;
-            
-            // Use independent scaling for width and height to fill the entire screen
-            this.backgroundImage.scaleX(scaleX);
-            this.backgroundImage.scaleY(scaleY);
-            
-            // Position at top-left corner (0, 0) - image will stretch to fill screen
-            this.backgroundImage.x(0);
-            this.backgroundImage.y(0);
-            
-            // Add to background layer
-            this.backgroundLayer.add(this.backgroundImage);
-            this.backgroundLayer.draw();
-            
-            console.log('✓ Background parchment image loaded');
-        };
-        
-        imageObj.onerror = () => {
-            console.error('❌ Failed to load background image');
-        };
-        
-    // Set the image source - use forward slashes for web paths
-    imageObj.src = this.model.baseBackgroundSrc;
-
-        // Load the overlay image that should sit above the base background
-        const overlayObj = new Image();
-        overlayObj.onload = () => {
-            this.overlayBackgroundImage = createPixelImage(overlayObj, { x: 0, y: 0 });
-
-            // Keep original (natural) size: do NOT stretch to stage
-            this.overlayBackgroundImage.scaleX(this.model.overlayScaleX);
-            this.overlayBackgroundImage.scaleY(this.model.overlayScaleY);
-
-            // Center the overlay if configured
-            if (this.model.centerOverlay) {
-                const img = this.overlayBackgroundImage;
-                const displayedWidth = img.width() * img.scaleX();
-                const displayedHeight = img.height() * img.scaleY();
-                const centerX = (this.stage.width() - displayedWidth) / 2;
-                const centerY = (this.stage.height() - displayedHeight) / 2;
-                img.x(centerX);
-                img.y(centerY);
-            }
-
-            // Record the base (centered) position to support offsetting without moving the base background
-            this.overlayBaseX = this.overlayBackgroundImage.x();
-            this.overlayBaseY = this.overlayBackgroundImage.y();
-
-            // Apply initial overlay/map offset now that base position is known
-            this.applyOverlayMapOffset();
-
-            // Add AFTER base background so it sits on top of it but remains in the background layer
-            this.backgroundLayer.add(this.overlayBackgroundImage);
-            this.backgroundLayer.draw();
-
-            console.log('✓ Game overlay background image loaded');
-        };
-
-        overlayObj.onerror = () => {
-            console.error('❌ Failed to load game overlay background image');
-        };
-
-        // Web-served path from /public
-        overlayObj.src = this.model.overlayBackgroundSrc;
-
-        // Load the left-side image (rotated CCW 90 degrees) and position it on the left
-        const leftObj = new Image();
-        leftObj.onload = () => {
-            this.leftSideImage = createPixelImage(leftObj, { x: 0, y: 0 });
-
-            // Apply scaling
-            this.leftSideImage.scaleX(this.model.leftSideImageScaleX);
-            this.leftSideImage.scaleY(this.model.leftSideImageScaleY);
-
-            // Set rotation around the image center
-            const naturalW = leftObj.width;
-            const naturalH = leftObj.height;
-            this.leftSideImage.offsetX(naturalW / 2);
-            this.leftSideImage.offsetY(naturalH / 2);
-            this.leftSideImage.rotation(this.model.leftSideImageRotationDeg);
-
-            // Compute displayed size (pre-rotation) for positioning
-            const displayedW = naturalW * this.leftSideImage.scaleX();
-            const displayedH = naturalH * this.leftSideImage.scaleY();
-
-            // Position near the left edge, vertically centered, with configurable vertical offset
-            const x = this.model.leftSideImageMarginLeft + displayedW / 2;
-            const y = (this.stage.height() / 2) + (this.model.leftSideImageOffsetY || 0);
-            this.leftSideImage.x(x);
-            this.leftSideImage.y(y);
-
-            // Add after other backgrounds so it appears above base/overlay but still behind the SVG map
-            this.backgroundLayer.add(this.leftSideImage);
-            this.backgroundLayer.draw();
-
-            console.log('✓ Left-side image loaded and positioned');
-        };
-
-        leftObj.onerror = () => {
-            console.error('❌ Failed to load left-side image');
-        };
-
-        leftObj.src = this.model.leftSideImageSrc;
-
-        // Load image to be placed below the overlay (no rotation by default)
-        const belowObj = new Image();
-        belowObj.onload = () => {
-            this.belowOverlayImage = createPixelImage(belowObj, { x: 0, y: 0 });
-
-            // Apply scaling from model
-            this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
-            this.belowOverlayImage.scaleY(this.model.belowOverlayImageScaleY);
-
-            // Position relative to the overlay
-            this.updateBelowOverlayPosition();
-
-            // Add after base/overlay so it remains behind the SVG map
-            this.backgroundLayer.add(this.belowOverlayImage);
-            this.backgroundLayer.draw();
-
-            console.log('✓ Below-overlay image loaded and positioned');
-        };
-
-        belowObj.onerror = () => {
-            console.error('❌ Failed to load below-overlay image');
-        };
-
-        belowObj.src = this.model.belowOverlayImageSrc;
-    }
-
-    /** Keep the belowOverlayImage positioned under the overlay, centered horizontally. */
+     /** Keep the belowOverlayImage positioned under the overlay, centered horizontally. */
     private updateBelowOverlayPosition(): void {
         if (!this.overlayBackgroundImage || !this.belowOverlayImage) return;
         const overlay = this.overlayBackgroundImage;
@@ -323,7 +288,7 @@ export class GameView {
         return this.svgPathElements.get(stateCode);
     }
 
-	/** Sync the view with the model's current state. */
+    /** Sync the view with the model's current state. */
 	updateViewFromModel(): void {
 		const states = this.model.getAllStates();
 		states.forEach((state, code) => {
@@ -336,7 +301,9 @@ export class GameView {
 			// Update highlight opacity
 			pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
 		});
-	}    /** Get all state codes currently in the view. */
+	}
+
+    /** Get all state codes currently in the view. */
     getAllStateCodes(): string[] {
         return Array.from(this.svgPathElements.keys());
     }
@@ -374,6 +341,8 @@ export class GameView {
             this.svgContainer.style.transform = `translate(0px, ${this.overlayMapOffsetY}px)`;
         }
     }
+
+
 
     /**
      * Move the left-side image up/down independently of the overlay/map.

@@ -18,12 +18,24 @@ export class GameController {
 		this.model = new GameModel();
 		this.view = new GameView(stage, this.model);
 
-		// Load the US map via View (View owns the SVG DOM)
-		this.view.loadMap('/Blank_US_Map_(states_only).svg').then((stateCodes) => {
-			// Initialize model with the state codes discovered by the view
+		// NEW: initialize GameView (load images sequentially)
+		this.initializeView();
+
+
+	}
+	
+	private async initializeView() {
+		try {
+			// Load images sequentially (background, overlay, etc.)
+			await this.view.init();
+
+			// Load the US map SVG
+			const stateCodes = await this.view.loadMap('/Blank_US_Map_(states_only).svg');
+
+			// Initialize model with state codes discovered by the view
 			this.model.initializeStates(stateCodes, '#adeaffff');
-			
-			// Sync the view to show the model's initial state
+
+			// Sync the view to reflect the model
 			this.view.updateViewFromModel();
 
 			// initialize multiplier display
@@ -38,8 +50,13 @@ export class GameController {
 
 			// SANDBOX MODE - Uncomment to run automated tests
 			// runSandbox(this.model);
-		});
-	}	getView() {
+
+		} catch (err) {
+			console.error('❌ Failed to initialize GameController:', err);
+		}
+	}
+	
+	getView() {
 		return this.view;
 	}
 
