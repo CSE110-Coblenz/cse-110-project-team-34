@@ -214,6 +214,7 @@ export class GameModel {
 
     // --- Game data (business logic) ---
     private states: Map<string, State> = new Map();
+    private allStatesCodes: string[] = []; // Array of all state codes for random selection
     score: number = 0;
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
@@ -224,6 +225,7 @@ export class GameModel {
     /** Initialize states from a list of state codes. */
     initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
         this.states.clear();
+        this.allStatesCodes = [...stateCodes]; // Store a copy of all state codes
         stateCodes.forEach((code) => {
             const state = new State(code, defaultColor);
             this.states.set(code, state);
@@ -238,6 +240,10 @@ export class GameModel {
 
     getAllStates(): Map<string, State> {
         return this.states;
+    }
+
+    getAllStatesCodes(): string[] {
+        return this.allStatesCodes;
     }
 
     resetAllStates(): void {

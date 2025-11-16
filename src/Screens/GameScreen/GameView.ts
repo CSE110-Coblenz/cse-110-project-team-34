@@ -2,7 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { developerOnly_showGameClock } from './sandbox';
+import { developerOnly_showGameClock, developerOnly_showInputLabel } from './sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -43,6 +43,7 @@ export class GameView {
     // FOR THE TEXT INPUT BOX
     private inputTextLayer!: Konva.Layer;
     private inputTextDisplay!: Konva.Text;
+    private inputLabelText!: Konva.Text;
 
     // FOR THE INPUT HISTORY LIST
     private historyLayer!: Konva.Layer;
@@ -373,6 +374,21 @@ export class GameView {
         this.updateViewFromModel();
     }
 
+    /** Randomly pick a state and highlight it with its neighbors */
+    pickRandomState(): void {
+        const allStates = this.model.getAllStatesCodes();
+        if (allStates.length === 0) return;
+        
+        // Pick a random state
+        const randomIndex = Math.floor(Math.random() * allStates.length);
+        const randomStateCode = allStates[randomIndex];
+        
+        console.log(`🎲 Randomly selected state: ${randomStateCode}`);
+        
+        // Use existing highlight logic
+        this.handleStateClick(randomStateCode);
+    }
+
     /** Sync the view with the model's current state. */
 	updateViewFromModel(): void {
 		const states = this.model.getAllStates();
@@ -534,6 +550,17 @@ export class GameView {
         this.inputTextLayer = new Konva.Layer();
         this.stage.add(this.inputTextLayer);
 
+        // Create label above input box
+        this.inputLabelText = new Konva.Text({
+            x: 0,
+            y: 0,
+            text: '(Developer View) Enter text below',
+            fontSize: 0, // Will be calculated responsively
+            fontFamily: 'Arial',
+            fill: '#00ff00', // Green color
+            align: 'center',
+        });
+
         this.inputTextDisplay = new Konva.Text({
             x: 0,
             y: 0,
@@ -545,6 +572,7 @@ export class GameView {
             verticalAlign: 'middle',
         });
 
+        this.inputTextLayer.add(this.inputLabelText);
         this.inputTextLayer.add(this.inputTextDisplay);
 
         // Set up keyboard event listeners
@@ -592,6 +620,15 @@ export class GameView {
             this.inputTextDisplay.width(imgWidth);
             this.inputTextDisplay.x(imgX);
             this.inputTextDisplay.y(imgY + imgHeight / 2 - fontSize); // Vertically centered
+            
+            // Position label above the input box (only if enabled)
+            if (developerOnly_showInputLabel) {
+                const labelFontSize = Math.max(12, imgHeight * 0.3);
+                this.inputLabelText.fontSize(labelFontSize);
+                this.inputLabelText.width(imgWidth);
+                this.inputLabelText.x(imgX);
+                this.inputLabelText.y(imgY - labelFontSize - 10); // Above the image with 10px gap
+            }
         }
 
         this.inputTextLayer.batchDraw();

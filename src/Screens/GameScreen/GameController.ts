@@ -34,13 +34,14 @@ export class GameController {
 			// Initialize model with state codes discovered by the view
 			this.model.initializeStates(stateCodes, '#adeaffff');
 
-			// Sync the view to reflect the model
-			this.view.updateViewFromModel();
+            // Sync the view to reflect the model
+            this.view.updateViewFromModel();
 
-			// initialize multiplier display
-			this.view.initializeMultiplier();
+            // initialize multiplier display
+            this.view.initializeMultiplier();
 
-			// Start multiplier decrease timer (handled by controller)
+            // Pick a random state on load
+            this.view.pickRandomState();			// Start multiplier decrease timer (handled by controller)
 			setInterval(() => {
 				this.model.decreaseMultiplier();
 				this.refreshView();

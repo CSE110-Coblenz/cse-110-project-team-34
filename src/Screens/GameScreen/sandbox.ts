@@ -20,6 +20,9 @@ export const developerOnly_skipMenuScreen = true;
 // Developer flag: set to true to display the game clock
 export const developerOnly_showGameClock = true;
 
+// Developer flag: set to true to show "Enter text below" label
+export const developerOnly_showInputLabel = true;
+
 import { GameModel } from './GameModel';
 
 /**
