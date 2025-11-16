@@ -128,34 +128,89 @@ export class GameModel {
     // Secondary background (overlay) image on top of the base background
     overlayBackgroundSrc: string = '/Humble Gift - Paper UI System v1.1/Sprites/Paper UI Pack/Plain/10 Calander/1.png';
 
-    // Overlay scale (use 1,1 for natural size)
-    overlayScaleX: number = 1.8;
-    overlayScaleY: number = 1.6;
+    // Overlay scale as proportion of window size (responsive)
+    private baseOverlayScaleX: number = 1.8;
+    private baseOverlayScaleY: number = 1.6;
+
+    // Get responsive overlay scale based on window size
+    get overlayScaleX(): number {
+        // Scale relative to a base window width (e.g., 1920px)
+        return this.baseOverlayScaleX * (window.innerWidth / 1920);
+    }
+
+    get overlayScaleY(): number {
+        // Scale relative to a base window height (e.g., 1080px)
+        return this.baseOverlayScaleY * (window.innerHeight / 1080);
+    }
 
     // Whether to center the overlay after loading
     centerOverlay: boolean = true;
 
     // Vertical offset to apply to the OVERLAY background and the US SVG map (base background does not move)
-    // Negative moves up, positive moves down
-    overlayMapOffsetY: number = -90;
+    // Negative moves up, positive moves down (as proportion of window height)
+    private baseOverlayMapOffsetY: number = -90;
+    
+    get overlayMapOffsetY(): number {
+        return this.baseOverlayMapOffsetY * (window.innerHeight / 1080);
+    }
+    
+    set overlayMapOffsetY(value: number) {
+        this.baseOverlayMapOffsetY = value * (1080 / window.innerHeight);
+    }
 
     // Additional left-side image configuration
     leftSideImageSrc: string = '/Humble Gift - Paper UI System v1.1/Sprites/Paper UI Pack/Plain/9 Rewards/1.png';
-    leftSideImageScaleX: number = 2;
-    leftSideImageScaleY: number = 2;
+    private baseLeftSideImageScaleX: number = 2;
+    private baseLeftSideImageScaleY: number = 2;
+    
+    get leftSideImageScaleX(): number {
+        return this.baseLeftSideImageScaleX * (window.innerWidth / 1920);
+    }
+    
+    get leftSideImageScaleY(): number {
+        return this.baseLeftSideImageScaleY * (window.innerHeight / 1080);
+    }
+    
     // Rotate -90 (counter-clockwise) before adding
     leftSideImageRotationDeg: number = -90;
-    // Margin from the left edge when positioned
-    leftSideImageMarginLeft: number = -260;
+    
+    // Margin from the left edge when positioned (as proportion of window width)
+    private baseLeftSideImageMarginLeft: number = -260;
+    
+    get leftSideImageMarginLeft(): number {
+        return this.baseLeftSideImageMarginLeft * (window.innerWidth / 1920);
+    }
+    
     // Vertical offset (px) to move the left-side image up/down (independent of overlay/map)
-    leftSideImageOffsetY: number = 90;
+    private baseLeftSideImageOffsetY: number = 90;
+    
+    get leftSideImageOffsetY(): number {
+        return this.baseLeftSideImageOffsetY * (window.innerHeight / 1080);
+    }
+    
+    set leftSideImageOffsetY(value: number) {
+        this.baseLeftSideImageOffsetY = value * (1080 / window.innerHeight);
+    }
 
     // Image to place below the secondary (overlay) background
     belowOverlayImageSrc: string = '/Humble Gift - Paper UI System v1.1/Sprites/Paper UI Pack/Plain/9 Rewards/2.png';
-    belowOverlayImageScaleX: number = 2;
-    belowOverlayImageScaleY: number = 1.3;
-    // Vertical gap between overlay bottom and this image's top
-    belowOverlayMarginTop: number = -25;
+    private baseBelowOverlayImageScaleX: number = 2;
+    private baseBelowOverlayImageScaleY: number = 1.3;
+    
+    get belowOverlayImageScaleX(): number {
+        return this.baseBelowOverlayImageScaleX * (window.innerWidth / 1920);
+    }
+    
+    get belowOverlayImageScaleY(): number {
+        return this.baseBelowOverlayImageScaleY * (window.innerHeight / 1080);
+    }
+    
+    // Vertical gap between overlay bottom and this image's top (as proportion of window height)
+    private baseBelowOverlayMarginTop: number = -25;
+    
+    get belowOverlayMarginTop(): number {
+        return this.baseBelowOverlayMarginTop * (window.innerHeight / 1080);
+    }
 
     // --- Game data (business logic) ---
     private states: Map<string, State> = new Map();

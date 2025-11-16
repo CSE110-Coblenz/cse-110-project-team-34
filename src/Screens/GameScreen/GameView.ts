@@ -18,6 +18,7 @@ export class GameView {
     private stage: Konva.Stage;
     private backgroundLayer: Konva.Layer;
     private layer: Konva.Layer;
+    private uiLayer: Konva.Layer; // Separate layer for UI elements that need responsive scaling
     private svgContainer: HTMLDivElement | null = null;
     private svgPathElements: Map<string, SVGPathElement> = new Map(); // View's DOM map
     private backgroundImage: Konva.Image | null = null;
@@ -63,6 +64,10 @@ export class GameView {
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
+        // Create UI layer for responsive UI elements (on top of game world)
+        this.uiLayer = new Konva.Layer();
+        this.stage.add(this.uiLayer);
+
         // Create a container for the SVG (View only mounts it)
         this.createSVGContainer();
 
@@ -79,6 +84,9 @@ export class GameView {
 
         // Apply initial vertical offset from the model (overlay + map only)
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
+
+        // Setup window resize listener for responsive UI
+        window.addEventListener('resize', this.handleResize.bind(this));
     }
 
     /** Initialize and load assets in deterministic order */
@@ -201,11 +209,36 @@ export class GameView {
         this.svgContainer.style.display = 'flex'; // use flexbox for centering
         this.svgContainer.style.justifyContent = 'center'; // center horizontally
         this.svgContainer.style.alignItems = 'center'; // center vertically
-    this.svgContainer.style.pointerEvents = 'auto'; // allow interactions (clicks on states)
+        this.svgContainer.style.pointerEvents = 'auto'; // allow interactions (clicks on states)
         this.svgContainer.style.visibility = 'hidden'; // hidden by default, use visibility instead of display
+        this.svgContainer.style.overflow = 'visible'; // Don't clip the SVG
         
         // Add to body
         document.body.appendChild(this.svgContainer);
+    }
+
+    /** Calculate responsive SVG scale based on window dimensions */
+    private getResponsiveSVGScale(): number {
+        // Calculate scale factor based on window size relative to baseline (1920x1080)
+        const widthScale = window.innerWidth / 1920;
+        const heightScale = window.innerHeight / 1080;
+        
+        // Use the smaller scale to ensure map fits in window
+        const scale = Math.min(widthScale, heightScale);
+        
+        // Scale down to 45% of the baseline (halved from 90%)
+        return scale * 1;
+    }
+
+    /** Apply responsive styles to SVG element */
+    private applySVGStyles(svg: SVGSVGElement): void {
+        const scale = this.getResponsiveSVGScale();
+        
+        // Use CSS transform to scale the entire SVG
+        svg.style.transform = `scale(${scale})`;
+        svg.style.transformOrigin = 'center center';
+        svg.style.display = 'block';
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
 
      /** Keep the belowOverlayImage positioned under the overlay, centered horizontally. */
@@ -238,13 +271,8 @@ export class GameView {
         if (!this.svgContainer) return;
         this.svgContainer.innerHTML = '';
         this.svgContainer.appendChild(svg);
-        // Style for aspect ratio and visibility
-        svg.style.maxWidth = '90%';
-        svg.style.maxHeight = '90%';
-        svg.style.width = 'auto';
-        svg.style.height = 'auto';
-        svg.style.display = 'block';
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        // Apply responsive styles
+        this.applySVGStyles(svg);
         console.log('US map attached to view');
     }
 
@@ -265,13 +293,8 @@ export class GameView {
             throw new Error('SVG root element not found');
         }
 
-        // Style the SVG
-        svg.style.maxWidth = '90%';
-        svg.style.maxHeight = '90%';
-        svg.style.width = 'auto';
-        svg.style.height = 'auto';
-        svg.style.display = 'block';
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        // Apply responsive styles to the SVG
+        this.applySVGStyles(svg);
 
         // Parse state paths and build the DOM map
         const stateCodes = this.parseStatePaths(svg);
@@ -415,6 +438,82 @@ export class GameView {
         }
     }
 
+    /** Handle window resize event to reposition and rescale UI elements */
+    private handleResize(): void {
+        // Recalculate all positions and scales since model getters are now responsive
+        
+        // 1. Update overlay position and scale
+        if (this.overlayBackgroundImage) {
+            this.overlayBackgroundImage.scaleX(this.model.overlayScaleX);
+            this.overlayBackgroundImage.scaleY(this.model.overlayScaleY);
+            
+            if (this.model.centerOverlay) {
+                const displayedW = this.overlayBackgroundImage.width() * this.overlayBackgroundImage.scaleX();
+                const displayedH = this.overlayBackgroundImage.height() * this.overlayBackgroundImage.scaleY();
+                this.overlayBackgroundImage.x((this.stage.width() - displayedW) / 2);
+                this.overlayBackgroundImage.y((this.stage.height() - displayedH) / 2);
+            }
+            
+            // Reset base positions
+            this.overlayBaseX = this.overlayBackgroundImage.x();
+            this.overlayBaseY = this.overlayBackgroundImage.y();
+            this.applyOverlayMapOffset();
+        }
+        
+        // 2. Update left-side image
+        if (this.leftSideImage) {
+            this.leftSideImage.scaleX(this.model.leftSideImageScaleX);
+            this.leftSideImage.scaleY(this.model.leftSideImageScaleY);
+            
+            const img = this.leftSideImage.image() as HTMLImageElement;
+            const naturalW = img?.width || 0;
+            const displayedW = naturalW * this.leftSideImage.scaleX();
+            const x = this.model.leftSideImageMarginLeft + displayedW / 2;
+            const y = (this.stage.height() / 2) + (this.model.leftSideImageOffsetY || 0);
+            this.leftSideImage.x(x);
+            this.leftSideImage.y(y);
+        }
+        
+        // 3. Update below-overlay image
+        if (this.belowOverlayImage) {
+            this.belowOverlayImage.scaleX(this.model.belowOverlayImageScaleX);
+            this.belowOverlayImage.scaleY(this.model.belowOverlayImageScaleY);
+        }
+        
+        // 4. Resize SVG map responsively
+        if (this.svgContainer) {
+            const svg = this.svgContainer.querySelector('svg');
+            if (svg) {
+                this.applySVGStyles(svg);
+            }
+        }
+        
+        // 5. Reposition all UI elements based on new dimensions
+        this.updateBelowOverlayPosition();
+        this.updateInputTextDisplay();
+        this.updateHistoryDisplay();
+        this.repositionGameClock();
+        
+        // 6. Redraw all layers
+        this.backgroundLayer.batchDraw();
+        this.uiLayer.batchDraw();
+    }
+
+    /** Reposition game clock based on window size */
+    private repositionGameClock(): void {
+        if (this.gameClockContainer) {
+            // Position clock relative to window size (e.g., 1% from top and left)
+            const topOffset = window.innerHeight * 0.01;
+            const leftOffset = window.innerWidth * 0.01;
+            this.gameClockContainer.style.top = `${topOffset}px`;
+            this.gameClockContainer.style.left = `${leftOffset}px`;
+            
+            // Scale font size based on window height
+            const fontSize = Math.max(16, window.innerHeight * 0.025);
+            this.gameClockContainer.style.fontSize = `${fontSize}px`;
+        }
+    }
+
 
 
     /**
@@ -430,7 +529,7 @@ export class GameView {
         }
     }
 
-    //TEXT INPUT METHODS
+    // TEXT INPUT BOX METHODS
     initializeTextInput() {
         this.inputTextLayer = new Konva.Layer();
         this.stage.add(this.inputTextLayer);
@@ -439,9 +538,9 @@ export class GameView {
             x: 0,
             y: 0,
             text: '',
-            fontSize: 40,
+            fontSize: 0, // Will be calculated responsively
             fontFamily: 'Arial',
-            fill: '#333333',
+            fill: '#2c3e50',
             align: 'center',
             verticalAlign: 'middle',
         });
@@ -485,10 +584,14 @@ export class GameView {
             const imgWidth = this.belowOverlayImage.width() * this.belowOverlayImage.scaleX();
             const imgHeight = this.belowOverlayImage.height() * this.belowOverlayImage.scaleY();
 
+            // Responsive font size based on image height
+            const fontSize = Math.max(16, imgHeight * 0.15);
+            this.inputTextDisplay.fontSize(fontSize);
+
             // Center the text
             this.inputTextDisplay.width(imgWidth);
             this.inputTextDisplay.x(imgX);
-            this.inputTextDisplay.y(imgY + imgHeight / 2 - 20); // Vertically centered
+            this.inputTextDisplay.y(imgY + imgHeight / 2 - fontSize); // Vertically centered
         }
 
         this.inputTextLayer.batchDraw();
@@ -503,7 +606,7 @@ export class GameView {
             x: 0,
             y: 0,
             text: '',
-            fontSize: 24,
+            fontSize: 0, // Will be calculated responsively
             fontFamily: 'Arial',
             fill: '#2c3e50',
             align: 'left',
@@ -528,15 +631,23 @@ export class GameView {
             const imgWidth = this.leftSideImage.width() * this.leftSideImage.scaleX();
             const imgHeight = this.leftSideImage.height() * this.leftSideImage.scaleY();
             
+            // Responsive font size based on window height
+            const fontSize = Math.max(14, window.innerHeight * 0.02);
+            this.historyTextDisplay.fontSize(fontSize);
+            
             // Account for rotation: the image is rotated -90 degrees
             // After rotation, the top of the image is on the left side
             // Calculate position to start from the top of the rotated image
             const topLeftX = imgX - imgHeight / 2;
             const topLeftY = imgY - imgWidth / 2;
 
-            this.historyTextDisplay.x(topLeftX + 80); // 30 pixels from left edge
-            this.historyTextDisplay.y(topLeftY + 30); // 10 pixels from top
-            this.historyTextDisplay.width(imgHeight - 40); // Fit within rotated width
+            // Responsive padding
+            const paddingX = imgHeight * 0.2;
+            const paddingY = imgHeight * 0.1;
+
+            this.historyTextDisplay.x(topLeftX + paddingX);
+            this.historyTextDisplay.y(topLeftY + paddingY);
+            this.historyTextDisplay.width(imgHeight - 2 * paddingX); // Fit within rotated width
         }
 
         this.historyLayer.batchDraw();
@@ -548,10 +659,7 @@ export class GameView {
         this.gameClockContainer = document.createElement('div');
         this.gameClockContainer.id = 'game-clock-display';
         this.gameClockContainer.style.position = 'absolute';
-        this.gameClockContainer.style.top = '10px';
-        this.gameClockContainer.style.left = '10px';
         this.gameClockContainer.style.color = '#00ff00';
-        this.gameClockContainer.style.fontSize = '20px';
         this.gameClockContainer.style.fontFamily = 'Arial';
         this.gameClockContainer.style.fontWeight = 'bold';
         this.gameClockContainer.style.zIndex = '10000'; // Very high z-index to be on top
@@ -560,6 +668,9 @@ export class GameView {
         this.gameClockContainer.textContent = `(Developer View) GameClock: ${this.model.getGameClock()}`;
         
         document.body.appendChild(this.gameClockContainer);
+        
+        // Position responsively
+        this.repositionGameClock();
         
         // Start the smooth animation loop
         this.startClockAnimation();
@@ -670,10 +781,13 @@ export class GameView {
             cancelAnimationFrame(this.clockAnimationFrameId);
             this.clockAnimationFrameId = null;
         }
-        // Remove keyboard listener
+        // Remove event listeners
         window.removeEventListener('keydown', this.handleKeyPress.bind(this));
+        window.removeEventListener('resize', this.handleResize.bind(this));
+        
         this.backgroundLayer.destroy();
         this.layer.destroy();
+        this.uiLayer.destroy();
         if (this.inputTextLayer) {
             this.inputTextLayer.destroy();
         }
