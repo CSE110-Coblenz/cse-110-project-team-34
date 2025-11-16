@@ -164,6 +164,7 @@ export class GameModel {
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
     private inputText: string = '';
     private inputHistory: string[] = [];
+    gameClock: number = 0; // in milliseconds
 
     /** Initialize states from a list of state codes. */
     initializeStates(stateCodes: string[], defaultColor: string = '#cccccc'): void {
@@ -212,7 +213,17 @@ export class GameModel {
         this.score = 0;
         this.timerSeconds = 0;
         this.multiplier = MULTIPLIER.STARTING_VALUE;
+        this.gameClock = 0;
         this.resetAllStates();
+    }
+
+    // --- Game clock methods ---
+    incrementGameClock(): void {
+        this.gameClock += 1000; // Increment by 1000ms (1 second)
+    }
+
+    getGameClock(): number {
+        return this.gameClock;
     }
 
     // --- Multiplier methods ---

@@ -46,6 +46,12 @@ export class GameController {
 				this.refreshView();
 			}, 1000); // runs every 1000 ms (1 second)
 
+			// Start game clock timer
+			setInterval(() => {
+				this.model.incrementGameClock();
+				this.refreshView();
+			}, 1000); // runs every 1000 ms (1 second)
+
 			// Expose for console debugging
 			(window as any).gameModel = this.model;
 			console.log('💡 Access gameModel in console: window.gameModel');

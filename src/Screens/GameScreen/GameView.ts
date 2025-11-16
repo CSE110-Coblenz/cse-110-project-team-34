@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
+import { developerOnly_showGameClock } from './sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -32,6 +33,11 @@ export class GameView {
     //FOR THE MULTIPLIER 
     private multiplierLayer!: Konva.Layer;
     private mutliplierText!: Konva.Text;
+
+    // FOR THE GAME CLOCK (Developer) - DOM element
+    private gameClockContainer: HTMLDivElement | null = null;
+    private animatedClockValue: number = 0;
+    private clockAnimationFrameId: number | null = null;
 
     // FOR THE TEXT INPUT BOX
     private inputTextLayer!: Konva.Layer;
@@ -65,6 +71,11 @@ export class GameView {
 
         // Initialize input history display
         this.initializeHistoryDisplay();
+
+        // Initialize game clock display (if developer flag is enabled)
+        if (developerOnly_showGameClock) {
+            this.initializeGameClock();
+        }
 
         // Apply initial vertical offset from the model (overlay + map only)
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -358,6 +369,11 @@ export class GameView {
 			this.mutliplierText.text(`${this.model.getMultiplier().toFixed(1)}x`);
 			this.multiplierLayer.batchDraw();
 		}
+
+		// Update game clock display (if enabled)
+		if (developerOnly_showGameClock) {
+			this.updateGameClockDisplay();
+		}
 	}
 
     /** Get all state codes currently in the view. */
@@ -526,6 +542,67 @@ export class GameView {
         this.historyLayer.batchDraw();
     }
 
+    //GAME CLOCK METHODS (Developer)
+    initializeGameClock() {
+        // Create a DOM div for the game clock
+        this.gameClockContainer = document.createElement('div');
+        this.gameClockContainer.id = 'game-clock-display';
+        this.gameClockContainer.style.position = 'absolute';
+        this.gameClockContainer.style.top = '10px';
+        this.gameClockContainer.style.left = '10px';
+        this.gameClockContainer.style.color = '#00ff00';
+        this.gameClockContainer.style.fontSize = '20px';
+        this.gameClockContainer.style.fontFamily = 'Arial';
+        this.gameClockContainer.style.fontWeight = 'bold';
+        this.gameClockContainer.style.zIndex = '10000'; // Very high z-index to be on top
+        this.gameClockContainer.style.pointerEvents = 'none'; // Don't block clicks
+        this.gameClockContainer.style.textShadow = '0 0 3px black, 0 0 5px black'; // Better visibility
+        this.gameClockContainer.textContent = `(Developer View) GameClock: ${this.model.getGameClock()}`;
+        
+        document.body.appendChild(this.gameClockContainer);
+        
+        // Start the smooth animation loop
+        this.startClockAnimation();
+    }
+
+    private startClockAnimation(): void {
+        let lastFrameTime = performance.now();
+        
+        const animate = (currentTime: number) => {
+            const deltaTime = currentTime - lastFrameTime;
+            lastFrameTime = currentTime;
+            
+            const targetValue = this.model.getGameClock();
+            
+            // Always increment by approximately 1ms per millisecond of real time
+            // This ensures smooth counting: 0, 1, 2, 3, 4, 5...
+            if (this.animatedClockValue < targetValue) {
+                this.animatedClockValue += deltaTime;
+                // Clamp to target to avoid overshooting
+                if (this.animatedClockValue > targetValue) {
+                    this.animatedClockValue = targetValue;
+                }
+            } else {
+                this.animatedClockValue = targetValue;
+            }
+            
+            // Update display with animated value
+            if (this.gameClockContainer) {
+                this.gameClockContainer.textContent = `(Developer View) GameClock: ${Math.floor(this.animatedClockValue)}`;
+            }
+            
+            // Continue animation
+            this.clockAnimationFrameId = requestAnimationFrame(animate);
+        };
+        
+        animate(performance.now());
+    }
+
+    updateGameClockDisplay(): void {
+        // The animation loop handles the display update
+        // This method is kept for compatibility but does nothing
+    }
+
     //MULTIPLIER METHODS
     initializeMultiplier() {
         this.multiplierLayer = new Konva.Layer();
@@ -554,6 +631,9 @@ export class GameView {
         if (this.historyLayer) {
             this.historyLayer.show();
         }
+        if (this.gameClockContainer) {
+            this.gameClockContainer.style.visibility = 'visible';
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
         }
@@ -569,6 +649,9 @@ export class GameView {
         if (this.historyLayer) {
             this.historyLayer.hide();
         }
+        if (this.gameClockContainer) {
+            this.gameClockContainer.style.visibility = 'hidden';
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
         }
@@ -578,6 +661,14 @@ export class GameView {
         if (this.svgContainer) {
             this.svgContainer.remove();
             this.svgContainer = null;
+        }
+        if (this.gameClockContainer) {
+            this.gameClockContainer.remove();
+            this.gameClockContainer = null;
+        }
+        if (this.clockAnimationFrameId !== null) {
+            cancelAnimationFrame(this.clockAnimationFrameId);
+            this.clockAnimationFrameId = null;
         }
         // Remove keyboard listener
         window.removeEventListener('keydown', this.handleKeyPress.bind(this));

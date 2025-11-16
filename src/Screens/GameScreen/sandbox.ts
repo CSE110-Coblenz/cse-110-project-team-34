@@ -17,6 +17,9 @@
 // Developer flag: set to true to skip menu and go directly to game screen
 export const developerOnly_skipMenuScreen = true;
 
+// Developer flag: set to true to display the game clock
+export const developerOnly_showGameClock = true;
+
 import { GameModel } from './GameModel';
 
 /**
