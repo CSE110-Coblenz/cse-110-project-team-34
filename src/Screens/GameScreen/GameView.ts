@@ -30,6 +30,7 @@ export class GameView {
     private overlayBaseX: number | null = null;
     private overlayBaseY: number | null = null;
     private model: GameModel;
+    private onCorrectAnswerCallback: (() => void) | null = null;
 
     //FOR THE MULTIPLIER 
     private multiplierLayer!: Konva.Layer;
@@ -350,25 +351,8 @@ export class GameView {
     private handleStateClick(stateCode: string): void {
         console.log(`🖱️ State clicked: ${stateCode}`);
         
-        // Reset all states to original color first
-        this.model.getAllStates().forEach((state) => {
-            state.color(state.originalColor);
-        });
-
-        // Set clicked state to pink
-        const clickedState = this.model.getState(stateCode);
-        if (clickedState) {
-            clickedState.color('pink');
-        }
-
-        // Set neighbor states to red
-        const neighbors = this.model.getNeighbors(stateCode);
-        neighbors.forEach((neighborCode) => {
-            const neighborState = this.model.getState(neighborCode);
-            if (neighborState) {
-                neighborState.color('red');
-            }
-        });
+        // Use the model's setCurrentState method
+        this.model.setCurrentState(stateCode);
 
         // Update the view to reflect the changes
         this.updateViewFromModel();
@@ -385,8 +369,11 @@ export class GameView {
         
         console.log(`🎲 Randomly selected state: ${randomStateCode}`);
         
-        // Use existing highlight logic
-        this.handleStateClick(randomStateCode);
+        // Use the model's setCurrentState method
+        this.model.setCurrentState(randomStateCode);
+        
+        // Update the view to reflect the changes
+        this.updateViewFromModel();
     }
 
     /** Sync the view with the model's current state. */
@@ -396,8 +383,13 @@ export class GameView {
 			const pathElement = this.svgPathElements.get(code);
 			if (!pathElement) return;
 
-			// Update color
-			pathElement.setAttribute('fill', state.getColor());
+			// If state is guessed, it should be green regardless of its current color
+			if (state.getIsGuessed()) {
+				pathElement.setAttribute('fill', '#00ff00'); // Green for guessed
+			} else {
+				// Update color based on model state
+				pathElement.setAttribute('fill', state.getColor());
+			}
 
 			// Update highlight opacity
 			pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
@@ -584,17 +576,33 @@ export class GameView {
         if (this.backgroundLayer.isVisible() === false) return;
 
         if (e.key === 'Enter') {
-            // Submit the text input to history and reset
-            this.model.submitInputText();
+            // Process the guess before adding to history
+            const inputText = this.model.getInputText();
+            if (inputText.trim().length > 0) {
+                const isCorrect = this.model.processGuess(inputText);
+                
+                if (isCorrect) {
+                    // Call the callback to notify controller of correct answer
+                    if (this.onCorrectAnswerCallback) {
+                        this.onCorrectAnswerCallback();
+                    }
+                    // Only add to history if correct (as lowercase)
+                    this.model.addToHistory(inputText.toLowerCase());
+                    this.updateViewFromModel(); // Update colors
+                    this.updateHistoryDisplay();
+                }
+                // If incorrect, don't add to history
+            }
+            // Always clear the input text after Enter
+            this.model.clearInputText();
             this.updateInputTextDisplay();
-            this.updateHistoryDisplay();
         } else if (e.key === 'Backspace') {
             // Remove last character
             const currentText = this.model.getInputText();
             this.model.setInputText(currentText.slice(0, -1));
             this.updateInputTextDisplay();
-        } else if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
-            // Add the character (model will handle validation and length limit)
+        } else if (e.key.length === 1 && /[a-zA-Z ]/.test(e.key)) {
+            // Add the character (now allowing spaces for state names like "New York")
             const currentText = this.model.getInputText();
             this.model.setInputText(currentText + e.key);
             this.updateInputTextDisplay();
@@ -767,6 +775,11 @@ export class GameView {
         });
 
         this.multiplierLayer.add(this.mutliplierText);
+    }
+
+    /** Set a callback to be invoked when a correct answer is given */
+    setOnCorrectAnswerCallback(callback: () => void): void {
+        this.onCorrectAnswerCallback = callback;
     }
 
     // show() method is required by ViewManager.ts

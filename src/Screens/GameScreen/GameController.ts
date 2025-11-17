@@ -40,6 +40,9 @@ export class GameController {
             // initialize multiplier display
             this.view.initializeMultiplier();
 
+            // Set up callback for correct answers
+            this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
+
             // Pick a random state on load
             this.view.pickRandomState();			// Start multiplier decrease timer (handled by controller)
 			setInterval(() => {

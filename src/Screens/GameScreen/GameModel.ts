@@ -1,6 +1,25 @@
 import { MULTIPLIER } from '../../gameConstants';
 
 /**
+ * Mapping from state abbreviation (lowercase) to full state name.
+ */
+const stateNames = new Map<string, string>([
+  ["al", "Alabama"], ["ak", "Alaska"], ["az", "Arizona"], ["ar", "Arkansas"],
+  ["ca", "California"], ["co", "Colorado"], ["ct", "Connecticut"], ["de", "Delaware"],
+  ["fl", "Florida"], ["ga", "Georgia"], ["hi", "Hawaii"], ["id", "Idaho"],
+  ["il", "Illinois"], ["in", "Indiana"], ["ia", "Iowa"], ["ks", "Kansas"],
+  ["ky", "Kentucky"], ["la", "Louisiana"], ["me", "Maine"], ["md", "Maryland"],
+  ["ma", "Massachusetts"], ["mi", "Michigan"], ["mn", "Minnesota"], ["ms", "Mississippi"],
+  ["mo", "Missouri"], ["mt", "Montana"], ["ne", "Nebraska"], ["nv", "Nevada"],
+  ["nh", "New Hampshire"], ["nj", "New Jersey"], ["nm", "New Mexico"], ["ny", "New York"],
+  ["nc", "North Carolina"], ["nd", "North Dakota"], ["oh", "Ohio"], ["ok", "Oklahoma"],
+  ["or", "Oregon"], ["pa", "Pennsylvania"], ["ri", "Rhode Island"], ["sc", "South Carolina"],
+  ["sd", "South Dakota"], ["tn", "Tennessee"], ["tx", "Texas"], ["ut", "Utah"],
+  ["vt", "Vermont"], ["va", "Virginia"], ["wa", "Washington"], ["wv", "West Virginia"],
+  ["wi", "Wisconsin"], ["wy", "Wyoming"]
+]);
+
+/**
  * A graph of the 50 US states represented as an adjacency list.
  * The key is the state's 2-letter abbreviation (lowercase).
  * The value is a Set of the 2-letter abbreviations of its neighboring states.
@@ -215,6 +234,7 @@ export class GameModel {
     // --- Game data (business logic) ---
     private states: Map<string, State> = new Map();
     private allStatesCodes: string[] = []; // Array of all state codes for random selection
+    private currentStateCode: string | null = null; // The currently selected state (pink)
     score: number = 0;
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
@@ -306,8 +326,8 @@ export class GameModel {
     }
 
     setInputText(text: string): void {
-        // Only allow English letters, max 13 characters
-        const filtered = text.replace(/[^a-zA-Z]/g, '').slice(0, 13);
+        // Allow English letters and spaces, max 20 characters (for "North Carolina", "South Carolina", etc.)
+        const filtered = text.replace(/[^a-zA-Z ]/g, '').slice(0, 20);
         this.inputText = filtered;
     }
 
@@ -321,6 +341,13 @@ export class GameModel {
             this.inputHistory.push(this.inputText);
         }
         this.inputText = '';
+    }
+
+    addToHistory(text: string): void {
+        // Directly add text to history (used for correct answers only)
+        if (text.trim().length > 0) {
+            this.inputHistory.push(text);
+        }
     }
 
     getInputHistory(): string[] {
@@ -346,5 +373,135 @@ export class GameModel {
      */
     isNeighbor(stateA: string, stateB: string): boolean {
         return stateAdjacencyList.get(stateA.toLowerCase())?.has(stateB.toLowerCase()) ?? false;
+    }
+
+    /**
+     * Gets the full name of a state from its abbreviation.
+     * @param stateCode The 2-letter state code (case-insensitive)
+     * @returns The full state name, or undefined if not found
+     */
+    getStateName(stateCode: string): string | undefined {
+        return stateNames.get(stateCode.toLowerCase());
+    }
+
+    /**
+     * Finds a state code by its full name (case-insensitive).
+     * @param stateName The full state name
+     * @returns The 2-letter state code, or undefined if not found
+     */
+    getStateCodeByName(stateName: string): string | undefined {
+        const lowerName = stateName.toLowerCase().trim();
+        for (const [code, name] of stateNames.entries()) {
+            if (name.toLowerCase() === lowerName) {
+                return code;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Gets the currently selected state code (the pink state).
+     */
+    getCurrentStateCode(): string | null {
+        return this.currentStateCode;
+    }
+
+    /**
+     * Sets the currently selected state (pink) and highlights its unguessed neighbors (red).
+     * @param stateCode The 2-letter state code to select
+     */
+    setCurrentState(stateCode: string): void {
+        // Reset all states to original color first
+        this.states.forEach((state) => {
+            if (!state.getIsGuessed()) {
+                state.color(state.originalColor);
+            } else {
+                state.color('#00ff00'); // Green for guessed states
+            }
+        });
+
+        this.currentStateCode = stateCode.toLowerCase();
+        const currentState = this.states.get(this.currentStateCode);
+        
+        if (currentState) {
+            // Set current state to pink
+            currentState.color('pink');
+
+            // Set unguessed neighbor states to red
+            const neighbors = this.getNeighbors(this.currentStateCode);
+            neighbors.forEach((neighborCode) => {
+                const neighborState = this.states.get(neighborCode);
+                if (neighborState && !neighborState.getIsGuessed()) {
+                    neighborState.color('red');
+                }
+            });
+        }
+    }
+
+    /**
+     * Processes a player's guess. If the guess matches a neighboring state:
+     * - Marks that state as guessed (sets isGuessed to true, turns it green)
+     * - Keeps the current state as pink
+     * - If there's exactly one unguessed neighbor left, that neighbor becomes the new current state
+     * 
+     * @param guessedStateName The full name of the state the player guessed
+     * @returns true if the guess was correct, false otherwise
+     */
+    processGuess(guessedStateName: string): boolean {
+        if (!this.currentStateCode) {
+            console.log('No current state selected');
+            return false;
+        }
+
+        // Find the state code for the guessed name
+        const guessedStateCode = this.getStateCodeByName(guessedStateName);
+        if (!guessedStateCode) {
+            console.log(`Unknown state name: ${guessedStateName}`);
+            return false;
+        }
+
+        // Check if the guessed state is a neighbor of the current state
+        if (!this.isNeighbor(this.currentStateCode, guessedStateCode)) {
+            console.log(`${guessedStateName} is not a neighbor of ${this.getStateName(this.currentStateCode)}`);
+            return false;
+        }
+
+        const guessedState = this.states.get(guessedStateCode);
+        if (!guessedState) {
+            return false;
+        }
+
+        // Check if already guessed
+        if (guessedState.getIsGuessed()) {
+            console.log(`${guessedStateName} was already guessed`);
+            return false;
+        }
+
+        // Mark as guessed and turn green
+        guessedState.isGuessed(true);
+        guessedState.color('#00ff00'); // Green
+
+        console.log(`✓ Correct! ${guessedStateName} is a neighbor`);
+
+        // Check how many unguessed neighbors remain
+        const neighbors = this.getNeighbors(this.currentStateCode);
+        const unguessedNeighbors = neighbors.filter((neighborCode) => {
+            const neighborState = this.states.get(neighborCode);
+            return neighborState && !neighborState.getIsGuessed();
+        });
+
+        // If there's exactly one unguessed neighbor left, make it the new current state
+        if (unguessedNeighbors.length === 1) {
+            console.log(`Only one neighbor left! Auto-selecting: ${this.getStateName(unguessedNeighbors[0])}`);
+            this.setCurrentState(unguessedNeighbors[0]);
+        } else if (unguessedNeighbors.length === 0) {
+            console.log('All neighbors guessed! Game logic could select a new random state here.');
+            // Could add logic here to pick a new random state with unguessed neighbors
+        } else {
+            // More than one unguessed neighbor remains - keep current state as is
+            console.log(`${unguessedNeighbors.length} neighbors remaining`);
+        }
+
+        return true;
     }
 }
