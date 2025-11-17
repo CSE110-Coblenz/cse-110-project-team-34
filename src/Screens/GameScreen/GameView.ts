@@ -2,7 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { developerOnly_showGameClock, developerOnly_showInputLabel } from './sandbox';
+import { showGameClock, showInputLabel, allowStateClicking } from './sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -44,7 +44,7 @@ export class GameView {
     // FOR THE TEXT INPUT BOX
     private inputTextLayer!: Konva.Layer;
     private inputTextDisplay!: Konva.Text;
-    private inputLabelText!: Konva.Text;
+    private inputLabelContainer: HTMLDivElement | null = null; // DOM element for developer label
 
     // FOR THE INPUT HISTORY LIST
     private historyLayer!: Konva.Layer;
@@ -80,7 +80,7 @@ export class GameView {
         this.initializeHistoryDisplay();
 
         // Initialize game clock display (if developer flag is enabled)
-        if (developerOnly_showGameClock) {
+        if (showGameClock) {
             this.initializeGameClock();
         }
 
@@ -330,9 +330,11 @@ export class GameView {
             this.svgPathElements.set(stateCode, path as SVGPathElement);
             stateCodes.push(stateCode);
             
-            // Add click handler to each state
-            path.addEventListener('click', () => this.handleStateClick(stateCode));
-            path.style.cursor = 'pointer';
+            // Add click handler to each state (only if developer flag is enabled)
+            if (allowStateClicking) {
+                path.addEventListener('click', () => this.handleStateClick(stateCode));
+                path.style.cursor = 'pointer';
+            }
         });
 
         if (stateCodes.length === 0) {
@@ -402,7 +404,7 @@ export class GameView {
 		}
 
 		// Update game clock display (if enabled)
-		if (developerOnly_showGameClock) {
+		if (showGameClock) {
 			this.updateGameClockDisplay();
 		}
 	}
@@ -542,16 +544,22 @@ export class GameView {
         this.inputTextLayer = new Konva.Layer();
         this.stage.add(this.inputTextLayer);
 
-        // Create label above input box
-        this.inputLabelText = new Konva.Text({
-            x: 0,
-            y: 0,
-            text: '(Developer View) Enter text below',
-            fontSize: 0, // Will be calculated responsively
-            fontFamily: 'Arial',
-            fill: '#00ff00', // Green color
-            align: 'center',
-        });
+        // Create DOM label for developer view (renders on top like game clock)
+        if (showInputLabel) {
+            this.inputLabelContainer = document.createElement('div');
+            this.inputLabelContainer.id = 'input-label-display';
+            this.inputLabelContainer.style.position = 'absolute';
+            this.inputLabelContainer.style.color = '#ffff00'; // Yellow
+            this.inputLabelContainer.style.backgroundColor = '#000000'; // Black background
+            this.inputLabelContainer.style.padding = '5px 10px';
+            this.inputLabelContainer.style.fontFamily = 'Arial';
+            this.inputLabelContainer.style.fontWeight = 'bold';
+            this.inputLabelContainer.style.zIndex = '10000'; // Very high z-index to be on top
+            this.inputLabelContainer.style.pointerEvents = 'none'; // Don't block clicks
+            this.inputLabelContainer.textContent = '(Developer View) Enter text below';
+            
+            document.body.appendChild(this.inputLabelContainer);
+        }
 
         this.inputTextDisplay = new Konva.Text({
             x: 0,
@@ -564,7 +572,6 @@ export class GameView {
             verticalAlign: 'middle',
         });
 
-        this.inputTextLayer.add(this.inputLabelText);
         this.inputTextLayer.add(this.inputTextDisplay);
 
         // Set up keyboard event listeners
@@ -629,13 +636,14 @@ export class GameView {
             this.inputTextDisplay.x(imgX);
             this.inputTextDisplay.y(imgY + imgHeight / 2 - fontSize); // Vertically centered
             
-            // Position label above the input box (only if enabled)
-            if (developerOnly_showInputLabel) {
+            // Position DOM label above the input box (only if enabled)
+            if (showInputLabel && this.inputLabelContainer) {
                 const labelFontSize = Math.max(12, imgHeight * 0.3);
-                this.inputLabelText.fontSize(labelFontSize);
-                this.inputLabelText.width(imgWidth);
-                this.inputLabelText.x(imgX);
-                this.inputLabelText.y(imgY - labelFontSize - 10); // Above the image with 10px gap
+                this.inputLabelContainer.style.fontSize = `${labelFontSize}px`;
+                this.inputLabelContainer.style.left = `${imgX}px`;
+                this.inputLabelContainer.style.top = `${imgY - labelFontSize - 20}px`; // Above the image with gap
+                this.inputLabelContainer.style.width = `${imgWidth}px`;
+                this.inputLabelContainer.style.textAlign = 'center';
             }
         }
 
@@ -704,12 +712,13 @@ export class GameView {
         this.gameClockContainer = document.createElement('div');
         this.gameClockContainer.id = 'game-clock-display';
         this.gameClockContainer.style.position = 'absolute';
-        this.gameClockContainer.style.color = '#00ff00';
+        this.gameClockContainer.style.color = '#ffff00'; // Yellow
+        this.gameClockContainer.style.backgroundColor = '#000000'; // Black background
+        this.gameClockContainer.style.padding = '5px 10px';
         this.gameClockContainer.style.fontFamily = 'Arial';
         this.gameClockContainer.style.fontWeight = 'bold';
         this.gameClockContainer.style.zIndex = '10000'; // Very high z-index to be on top
         this.gameClockContainer.style.pointerEvents = 'none'; // Don't block clicks
-        this.gameClockContainer.style.textShadow = '0 0 3px black, 0 0 5px black'; // Better visibility
         this.gameClockContainer.textContent = `(Developer View) GameClock: ${this.model.getGameClock()}`;
         
         document.body.appendChild(this.gameClockContainer);
@@ -795,6 +804,9 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'visible';
         }
+        if (this.inputLabelContainer) {
+            this.inputLabelContainer.style.visibility = 'visible';
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
         }
@@ -813,6 +825,9 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'hidden';
         }
+        if (this.inputLabelContainer) {
+            this.inputLabelContainer.style.visibility = 'hidden';
+        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
         }
@@ -826,6 +841,10 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.remove();
             this.gameClockContainer = null;
+        }
+        if (this.inputLabelContainer) {
+            this.inputLabelContainer.remove();
+            this.inputLabelContainer = null;
         }
         if (this.clockAnimationFrameId !== null) {
             cancelAnimationFrame(this.clockAnimationFrameId);

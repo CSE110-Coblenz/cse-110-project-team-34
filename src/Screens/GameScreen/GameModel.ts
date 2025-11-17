@@ -234,7 +234,8 @@ export class GameModel {
     // --- Game data (business logic) ---
     private states: Map<string, State> = new Map();
     private allStatesCodes: string[] = []; // Array of all state codes for random selection
-    private currentStateCode: string | null = null; // The currently selected state (pink)
+    private initialStateCode: string | null = null; // The initially selected state (pink, only at start)
+    private hasGuessedFirstNeighbor: boolean = false; // Track if first neighbor has been guessed
     score: number = 0;
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
@@ -400,15 +401,16 @@ export class GameModel {
     }
 
     /**
-     * Gets the currently selected state code (the pink state).
+     * Gets the initial state code (the pink state at game start, for display purposes only).
      */
     getCurrentStateCode(): string | null {
-        return this.currentStateCode;
+        return this.initialStateCode;
     }
 
     /**
-     * Sets the currently selected state (pink) and highlights its unguessed neighbors (red).
-     * @param stateCode The 2-letter state code to select
+     * Sets the initial state (pink) at game start and highlights its neighbors (red).
+     * This is only used for the initial setup.
+     * @param stateCode The 2-letter state code to select as initial
      */
     setCurrentState(stateCode: string): void {
         // Reset all states to original color first
@@ -420,15 +422,15 @@ export class GameModel {
             }
         });
 
-        this.currentStateCode = stateCode.toLowerCase();
-        const currentState = this.states.get(this.currentStateCode);
+        this.initialStateCode = stateCode.toLowerCase();
+        const initialState = this.states.get(this.initialStateCode);
         
-        if (currentState) {
-            // Set current state to pink
-            currentState.color('pink');
+        if (initialState) {
+            // Set initial state to pink
+            initialState.color('pink');
 
             // Set unguessed neighbor states to red
-            const neighbors = this.getNeighbors(this.currentStateCode);
+            const neighbors = this.getNeighbors(this.initialStateCode);
             neighbors.forEach((neighborCode) => {
                 const neighborState = this.states.get(neighborCode);
                 if (neighborState && !neighborState.getIsGuessed()) {
@@ -439,30 +441,51 @@ export class GameModel {
     }
 
     /**
-     * Processes a player's guess. If the guess matches a neighboring state:
-     * - Marks that state as guessed (sets isGuessed to true, turns it green)
-     * - Keeps the current state as pink
-     * - If there's exactly one unguessed neighbor left, that neighbor becomes the new current state
+     * Helper method to update the display of guessable (red) states.
+     * Shows all unguessed neighbors of all guessed states in red.
+     * Once a state becomes red (guessable), it stays red until guessed.
+     */
+    private updateGuessableStates(): void {
+        // Don't reset colors! We only ADD to the set of red states, never remove
+        
+        // After first neighbor is guessed, initial state becomes guessable
+        if (this.hasGuessedFirstNeighbor && this.initialStateCode) {
+            const initialState = this.states.get(this.initialStateCode);
+            if (initialState && !initialState.getIsGuessed() && initialState.getColor() !== 'red') {
+                initialState.color('red');
+            }
+        }
+
+        // For all guessed states, show their unguessed neighbors in red
+        this.states.forEach((state, code) => {
+            if (state.getIsGuessed()) {
+                const neighbors = this.getNeighbors(code);
+                neighbors.forEach((neighborCode) => {
+                    const neighborState = this.states.get(neighborCode);
+                    // Only change to red if not already guessed (green)
+                    if (neighborState && !neighborState.getIsGuessed() && neighborState.getColor() !== 'red') {
+                        neighborState.color('red');
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Processes a player's guess with the new simplified rules:
+     * - First guess must be a neighbor of the initial state (NOT the initial state itself)
+     * - After first correct guess, initial state becomes guessable (red)
+     * - Any red (guessable) state can be guessed
+     * - Guessing a state unlocks its neighbors (turns them red)
      * 
      * @param guessedStateName The full name of the state the player guessed
      * @returns true if the guess was correct, false otherwise
      */
     processGuess(guessedStateName: string): boolean {
-        if (!this.currentStateCode) {
-            console.log('No current state selected');
-            return false;
-        }
-
         // Find the state code for the guessed name
         const guessedStateCode = this.getStateCodeByName(guessedStateName);
         if (!guessedStateCode) {
             console.log(`Unknown state name: ${guessedStateName}`);
-            return false;
-        }
-
-        // Check if the guessed state is a neighbor of the current state
-        if (!this.isNeighbor(this.currentStateCode, guessedStateCode)) {
-            console.log(`${guessedStateName} is not a neighbor of ${this.getStateName(this.currentStateCode)}`);
             return false;
         }
 
@@ -477,30 +500,35 @@ export class GameModel {
             return false;
         }
 
+        // Check if the state is currently guessable
+        const currentColor = guessedState.getColor();
+        
+        // At the start (before first neighbor is guessed), pink state is NOT guessable
+        if (!this.hasGuessedFirstNeighbor && guessedStateCode === this.initialStateCode) {
+            console.log(`${guessedStateName} is the initial state and cannot be guessed yet. Guess a neighbor first!`);
+            return false;
+        }
+        
+        // Only red states are guessable (pink is only guessable after it turns red)
+        if (currentColor !== 'red') {
+            console.log(`${guessedStateName} is not currently guessable (must be red)`);
+            return false;
+        }
+
         // Mark as guessed and turn green
         guessedState.isGuessed(true);
         guessedState.color('#00ff00'); // Green
 
-        console.log(`✓ Correct! ${guessedStateName} is a neighbor`);
+        console.log(`✓ Correct! ${guessedStateName} guessed`);
 
-        // Check how many unguessed neighbors remain
-        const neighbors = this.getNeighbors(this.currentStateCode);
-        const unguessedNeighbors = neighbors.filter((neighborCode) => {
-            const neighborState = this.states.get(neighborCode);
-            return neighborState && !neighborState.getIsGuessed();
-        });
-
-        // If there's exactly one unguessed neighbor left, make it the new current state
-        if (unguessedNeighbors.length === 1) {
-            console.log(`Only one neighbor left! Auto-selecting: ${this.getStateName(unguessedNeighbors[0])}`);
-            this.setCurrentState(unguessedNeighbors[0]);
-        } else if (unguessedNeighbors.length === 0) {
-            console.log('All neighbors guessed! Game logic could select a new random state here.');
-            // Could add logic here to pick a new random state with unguessed neighbors
-        } else {
-            // More than one unguessed neighbor remains - keep current state as is
-            console.log(`${unguessedNeighbors.length} neighbors remaining`);
+        // Mark that we've guessed the first neighbor
+        if (!this.hasGuessedFirstNeighbor) {
+            this.hasGuessedFirstNeighbor = true;
+            console.log('First neighbor guessed! Initial state is now guessable.');
         }
+
+        // Update which states are now guessable (red)
+        this.updateGuessableStates();
 
         return true;
     }

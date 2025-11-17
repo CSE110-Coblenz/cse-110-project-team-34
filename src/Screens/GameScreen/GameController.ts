@@ -2,8 +2,6 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 import { GameModel } from "./GameModel";
-// Uncomment to enable sandbox testing
-// import { runSandbox } from "./sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;
@@ -62,9 +60,6 @@ export class GameController {
 			console.log('💡 Example: window.gameModel.getState("ca")?.color("red")');
 			console.log('💡 After changing model, call: window.gameController.refreshView()');
 			(window as any).gameController = this;
-
-			// SANDBOX MODE - Uncomment to run automated tests
-			// runSandbox(this.model);
 
 		} catch (err) {
 			console.error('❌ Failed to initialize GameController:', err);

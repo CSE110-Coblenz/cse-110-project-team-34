@@ -11,17 +11,26 @@
  * 4. After model changes, call window.gameController.refreshView() to see visual updates
  * 5. Comment out when done testing
  * 
+ * Developer Flags:
+ * - Set these flags to control developer-only features
+ * - skipMenuScreen: Skip menu and go directly to game screen
+ * - showGameClock: Display the game clock
+ * - showInputLabel: Show "Enter text below" label
+ * - allowStateClicking: Allow clicking on states to manually set the current state
+ * 
  * Note: States are accessed by their 2-letter abbreviations (e.g., 'ca', 'tx', 'ny')
  */
 
-// Developer flag: set to true to skip menu and go directly to game screen
-export const developerOnly_skipMenuScreen = true;
+// ====================================
+// Developer Flags
+// ====================================
+export const skipMenuScreen = true;
 
-// Developer flag: set to true to display the game clock
-export const developerOnly_showGameClock = true;
+export const showGameClock = true;
 
-// Developer flag: set to true to show "Enter text below" label
-export const developerOnly_showInputLabel = true;
+export const showInputLabel = true;
+
+export const allowStateClicking = false;
 
 import { GameModel } from './GameModel';
 

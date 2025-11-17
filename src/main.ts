@@ -1,7 +1,7 @@
 import { MenuController } from "./Screens/MenuScreen/MenuController";
 import { GameController } from "./Screens/GameScreen/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
-import { developerOnly_skipMenuScreen } from "./Screens/GameScreen/sandbox";
+import { skipMenuScreen } from "./Screens/GameScreen/sandbox";
 import Konva from 'konva';
 
 enum GameScreen {
@@ -39,7 +39,7 @@ class Main {
         });
 
         // Start the appropriate screen based on developer flag
-        if (developerOnly_skipMenuScreen) {
+        if (skipMenuScreen) {
             this.showGameScreen();
         } else {
             this.showMenuScreen();
