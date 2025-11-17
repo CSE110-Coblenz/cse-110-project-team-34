@@ -32,11 +32,11 @@ export const showGameClock = true;
 
 export const showInputLabel = true;
 
-export const allowStateClicking = false;
+export const allowStateClicking = true;
 
 export const showStatesGuessed = true;
 
-export const preGuessAllExceptCA = true;
+export const preGuessAllExceptCA = false;
 
 import { GameModel } from './GameModel';
 

@@ -303,6 +303,12 @@ export class GameView {
             throw new Error('SVG root element not found');
         }
 
+        // Remove all <title> elements to disable tooltips (unless allowStateClicking is enabled)
+        if (!allowStateClicking) {
+            const titles = svg.querySelectorAll('title');
+            titles.forEach(title => title.remove());
+        }
+
         // Apply responsive styles to the SVG
         this.applySVGStyles(svg);
 
