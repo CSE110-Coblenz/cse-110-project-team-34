@@ -1,40 +1,31 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
+import { ResultsView } from "./ResultsView";
 
 export class ResultsController {
 	private screenSwitcher: ScreenSwitcher;
-	private group: Konva.Group;
+	private view: ResultsView;
 	private score: number = 0;
 
-	constructor(screenSwitcher: ScreenSwitcher) {
+	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
 		this.screenSwitcher = screenSwitcher;
-		this.group = new Konva.Group();
-		this.group.visible(false);
-		
-		// TODO: Initialize results view components
+		this.view = new ResultsView(stage);
 	}
 
 	getView() {
-		return {
-			getGroup: () => this.group,
-			show: () => this.show(),
-			hide: () => this.hide(),
-		};
+		return this.view;
 	}
 
 	show(): void {
-		this.group.visible(true);
-		// TODO: Implement show logic
+		this.view.show();
 	}
 
 	hide(): void {
-		this.group.visible(false);
-		// TODO: Implement hide logic
+		this.view.hide();
 	}
 
-	showResults(score: number): void {
+	setScore(score: number): void {
 		this.score = score;
-		this.show();
-		// TODO: Implement results display logic with the score
+		this.view.updateScore(score);
 	}
 }

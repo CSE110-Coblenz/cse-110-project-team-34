@@ -322,6 +322,14 @@ export class GameModel {
         return count;
     }
 
+    /**
+     * Set the flag indicating that the first neighbor has been guessed.
+     * Used by developer flags to enable all neighbor states.
+     */
+    public setHasGuessedFirstNeighbor(value: boolean): void {
+        this.hasGuessedFirstNeighbor = value;
+    }
+
     // --- Multiplier methods ---
     getMultiplier(): number {
         return this.multiplier;
@@ -458,8 +466,9 @@ export class GameModel {
      * Helper method to update the display of guessable (red) states.
      * Shows all unguessed neighbors of all guessed states in red.
      * Once a state becomes red (guessable), it stays red until guessed.
+     * Public to allow developer flags to trigger state updates.
      */
-    private updateGuessableStates(): void {
+    public updateGuessableStates(): void {
         // Don't reset colors! We only ADD to the set of red states, never remove
         
         // After first neighbor is guessed, initial state becomes guessable

@@ -2,6 +2,7 @@ import { MenuController } from "./Screens/MenuScreen/MenuController";
 import { GameController } from "./Screens/GameScreen/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
 import { skipMenuScreen } from "./Screens/GameScreen/sandbox";
+import type { Screen } from "./types";
 import Konva from 'konva';
 
 enum GameScreen {
@@ -46,51 +47,69 @@ class Main {
         }
     }
 
+    switchToScreen(screen: Screen) {
+        if (screen.type === "menu") {
+            this.showMenuScreen();
+        } else if (screen.type === "game") {
+            this.showGameScreen();
+        } else if (screen.type === "result") {
+            this.showResultsScreen(screen.score);
+        }
+    }
+
     showMenuScreen() {
-        // Hide other screens
+        // Hide and destroy other screens
         if (this.gameController) {
             this.gameController.hide();
+            this.gameController.destroy();
+            this.gameController = null;
         }
         if (this.resultsController) {
             this.resultsController.hide();
+            this.resultsController = null;
         }
         
         this.layer.destroyChildren(); // Clear the layer
-        this.menuController = new MenuController({ switchToScreen: () => this.showGameScreen() }, this.stage);
-        // Don't add the group to this.layer - MenuView manages its own layers
-        this.menuController.show(); // Show the menu
+        this.menuController = new MenuController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+        this.menuController.show();
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
     }
 
     showGameScreen() {
-        // Hide menu screen
+        // Hide and destroy other screens
         if (this.menuController) {
             this.menuController.hide();
+            this.menuController = null;
         }
         if (this.resultsController) {
             this.resultsController.hide();
+            this.resultsController = null;
         }
         
         this.layer.destroyChildren();
-        this.gameController = new GameController({ switchToScreen: () => this.showResultsScreen() }, this.stage);
+        this.gameController = new GameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
         this.gameController.show();
         this.currentScreen = GameScreen.Game;
         this.layer.draw();
     }
 
-    showResultsScreen() {
-        // Hide other screens
+    showResultsScreen(score: number) {
+        // Hide and destroy other screens
         if (this.menuController) {
             this.menuController.hide();
+            this.menuController = null;
         }
         if (this.gameController) {
             this.gameController.hide();
+            this.gameController.destroy();
+            this.gameController = null;
         }
         
         this.layer.destroyChildren();
-        this.resultsController = new ResultsController({ switchToScreen: () => this.showMenuScreen() });
-        this.layer.add(this.resultsController.getView().getGroup());
+        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+        this.resultsController.setScore(score);
+        this.resultsController.show();
         this.currentScreen = GameScreen.Results;
         this.layer.draw();
     }

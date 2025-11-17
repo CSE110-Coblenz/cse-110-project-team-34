@@ -2,6 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 import { GameModel } from "./GameModel";
+import { applyDeveloperFlags } from "./sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;
@@ -42,7 +43,15 @@ export class GameController {
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
 
             // Pick a random state on load
-            this.view.pickRandomState();			// Start multiplier decrease timer (handled by controller)
+            this.view.pickRandomState();
+            
+            // Apply developer flags AFTER pickRandomState (which resets colors)
+            applyDeveloperFlags(this.model);
+            
+            // Refresh view to show developer flag changes
+            this.refreshView();
+            
+			// Start multiplier decrease timer (handled by controller)
 			setInterval(() => {
 				this.model.decreaseMultiplier();
 				this.refreshView();
@@ -74,6 +83,16 @@ export class GameController {
 	whenCorrectAnswer(): void {
 		this.model.increaseMultiplier();
 		this.refreshView();
+		
+		// Check if all 50 states have been guessed (win condition)
+		const statesGuessed = this.model.getStatesGuessedCount();
+		if (statesGuessed >= 50) {
+			console.log('🎉 All 50 states guessed! Transitioning to results screen...');
+			// Use the number of states guessed as the score
+			const finalScore = statesGuessed;
+			// Transition to results screen
+			this.screenSwitcher.switchToScreen({ type: "result", score: finalScore });
+		}
 	}
 
 	show(): void {
@@ -82,6 +101,10 @@ export class GameController {
 
 	hide(): void {
 		this.view.hide();
+	}
+
+	destroy(): void {
+		this.view.destroy();
 	}
 
 	/** Expose a public method to refresh the view (useful for console debugging). */
