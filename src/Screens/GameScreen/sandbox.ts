@@ -17,6 +17,7 @@
  * - showGameClock: Display the game clock
  * - showInputLabel: Show "Enter text below" label
  * - allowStateClicking: Allow clicking on states to manually set the current state
+ * - showStatesGuessed: Display the count of correctly guessed states
  * 
  * Note: States are accessed by their 2-letter abbreviations (e.g., 'ca', 'tx', 'ny')
  */
@@ -31,6 +32,8 @@ export const showGameClock = true;
 export const showInputLabel = true;
 
 export const allowStateClicking = false;
+
+export const showStatesGuessed = true;
 
 import { GameModel } from './GameModel';
 

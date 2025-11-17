@@ -2,7 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { showGameClock, showInputLabel, allowStateClicking } from './sandbox';
+import { showGameClock, showInputLabel, allowStateClicking, showStatesGuessed } from './sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -40,6 +40,9 @@ export class GameView {
     private gameClockContainer: HTMLDivElement | null = null;
     private animatedClockValue: number = 0;
     private clockAnimationFrameId: number | null = null;
+
+    // FOR THE STATES GUESSED COUNTER (Developer) - DOM element
+    private statesGuessedContainer: HTMLDivElement | null = null;
 
     // FOR THE TEXT INPUT BOX
     private inputTextLayer!: Konva.Layer;
@@ -82,6 +85,11 @@ export class GameView {
         // Initialize game clock display (if developer flag is enabled)
         if (showGameClock) {
             this.initializeGameClock();
+        }
+
+        // Initialize states guessed counter (if developer flag is enabled)
+        if (showStatesGuessed) {
+            this.initializeStatesGuessed();
         }
 
         // Apply initial vertical offset from the model (overlay + map only)
@@ -407,6 +415,11 @@ export class GameView {
 		if (showGameClock) {
 			this.updateGameClockDisplay();
 		}
+
+		// Update states guessed display (if enabled)
+		if (showStatesGuessed) {
+			this.updateStatesGuessedDisplay();
+		}
 	}
 
     /** Get all state codes currently in the view. */
@@ -503,6 +516,7 @@ export class GameView {
         this.updateInputTextDisplay();
         this.updateHistoryDisplay();
         this.repositionGameClock();
+        this.repositionStatesGuessed();
         
         // 6. Redraw all layers
         this.backgroundLayer.batchDraw();
@@ -768,6 +782,54 @@ export class GameView {
         // This method is kept for compatibility but does nothing
     }
 
+    //STATES GUESSED COUNTER METHODS (Developer)
+    initializeStatesGuessed() {
+        // Create a DOM div for the states guessed counter
+        this.statesGuessedContainer = document.createElement('div');
+        this.statesGuessedContainer.id = 'states-guessed-display';
+        this.statesGuessedContainer.style.position = 'absolute';
+        this.statesGuessedContainer.style.color = '#ffff00'; // Yellow
+        this.statesGuessedContainer.style.backgroundColor = '#000000'; // Black background
+        this.statesGuessedContainer.style.padding = '5px 10px';
+        this.statesGuessedContainer.style.fontFamily = 'Arial';
+        this.statesGuessedContainer.style.fontWeight = 'bold';
+        this.statesGuessedContainer.style.zIndex = '10000'; // Very high z-index to be on top
+        this.statesGuessedContainer.style.pointerEvents = 'none'; // Don't block clicks
+        this.statesGuessedContainer.textContent = `(Developer View) States Guessed: ${this.model.getStatesGuessedCount()}`;
+        
+        document.body.appendChild(this.statesGuessedContainer);
+        
+        // Position below the game clock
+        this.repositionStatesGuessed();
+    }
+
+    private repositionStatesGuessed(): void {
+        if (this.statesGuessedContainer) {
+            // Position below game clock
+            const topOffset = window.innerHeight * 0.01;
+            const leftOffset = window.innerWidth * 0.01;
+            
+            // Calculate position below game clock
+            const clockHeight = showGameClock && this.gameClockContainer 
+                ? this.gameClockContainer.offsetHeight 
+                : 0;
+            const gap = 5; // 5px gap between clock and counter
+            
+            this.statesGuessedContainer.style.left = `${leftOffset}px`;
+            this.statesGuessedContainer.style.top = `${topOffset + clockHeight + gap}px`;
+            
+            // Scale font size based on window height
+            const fontSize = Math.max(16, window.innerHeight * 0.025);
+            this.statesGuessedContainer.style.fontSize = `${fontSize}px`;
+        }
+    }
+
+    updateStatesGuessedDisplay(): void {
+        if (this.statesGuessedContainer) {
+            this.statesGuessedContainer.textContent = `(Developer View) States Guessed: ${this.model.getStatesGuessedCount()}`;
+        }
+    }
+
     //MULTIPLIER METHODS
     initializeMultiplier() {
         this.multiplierLayer = new Konva.Layer();
@@ -804,6 +866,9 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'visible';
         }
+        if (this.statesGuessedContainer) {
+            this.statesGuessedContainer.style.visibility = 'visible';
+        }
         if (this.inputLabelContainer) {
             this.inputLabelContainer.style.visibility = 'visible';
         }
@@ -825,6 +890,9 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'hidden';
         }
+        if (this.statesGuessedContainer) {
+            this.statesGuessedContainer.style.visibility = 'hidden';
+        }
         if (this.inputLabelContainer) {
             this.inputLabelContainer.style.visibility = 'hidden';
         }
@@ -841,6 +909,10 @@ export class GameView {
         if (this.gameClockContainer) {
             this.gameClockContainer.remove();
             this.gameClockContainer = null;
+        }
+        if (this.statesGuessedContainer) {
+            this.statesGuessedContainer.remove();
+            this.statesGuessedContainer = null;
         }
         if (this.inputLabelContainer) {
             this.inputLabelContainer.remove();

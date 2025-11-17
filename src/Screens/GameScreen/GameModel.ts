@@ -308,6 +308,20 @@ export class GameModel {
         return this.gameClock;
     }
 
+    // --- States Guessed Counter ---
+    /**
+     * Gets the count of correctly guessed states.
+     */
+    getStatesGuessedCount(): number {
+        let count = 0;
+        this.states.forEach((state) => {
+            if (state.getIsGuessed()) {
+                count++;
+            }
+        });
+        return count;
+    }
+
     // --- Multiplier methods ---
     getMultiplier(): number {
         return this.multiplier;
