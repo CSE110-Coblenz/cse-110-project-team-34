@@ -1,7 +1,7 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
-import { GameView } from "./GameView";
-import { GameModel } from "./GameModel";
+import { GameView } from "./practiceView";
+import { GameModel } from "./practiceModel";
 
 // Game Controller for Practice Mode
 export class GameController {

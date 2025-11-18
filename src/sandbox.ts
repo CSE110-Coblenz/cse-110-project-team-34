@@ -40,9 +40,9 @@ export const crackedModeShowGameClock = true;
 export const crackedModeShowInputLabel = true;
 export const crackedModeAllowStateClicking = false;
 export const crackedModeShowStatesGuessed = true;
-export const crackedModePreGuessAllExceptCA = false;
+export const crackedModePreGuessAllExceptCA = true;
 
-import type { GameModel as ClassicGameModel } from './Screens/GameScreen (Classic Mode)/GameModel';
+import type { GameModel as ClassicGameModel } from './Screens/GameScreen (Classic Mode)/classicModel';
 
 /**
  * Apply developer flag logic to pre-guess states for Classic Mode

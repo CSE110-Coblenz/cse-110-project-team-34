@@ -1,8 +1,8 @@
 import Konva from 'konva';
-import { GameModel, State } from './GameModel';
+import { GameModel, State } from './crackedModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { classicModeShowGameClock, classicModeShowInputLabel, classicModeAllowStateClicking, classicModeShowStatesGuessed } from '../../sandbox';
+import { crackedModeShowGameClock, crackedModeShowInputLabel, crackedModeAllowStateClicking, crackedModeShowStatesGuessed } from '../../sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -31,14 +31,6 @@ export class GameView {
     private overlayBaseY: number | null = null;
     private model: GameModel;
     private onCorrectAnswerCallback: (() => void) | null = null;
-
-    //FOR THE MULTIPLIER 
-    private multiplierLayer!: Konva.Layer;
-    private mutliplierText!: Konva.Text;
-
-    //FOR THE PLAYER POINTS
-    private playerPointsLayer!: Konva.Layer;
-    private playerPointsText!: Konva.Text;
 
     // FOR THE GAME CLOCK (Developer) - DOM element
     private gameClockContainer: HTMLDivElement | null = null;
@@ -86,13 +78,11 @@ export class GameView {
         // Initialize input history display
         this.initializeHistoryDisplay();
 
-        // Initialize game clock display (if developer flag is enabled)
-        if (classicModeShowGameClock) {
+        // Initialize developer features if enabled
+        if (crackedModeShowGameClock) {
             this.initializeGameClock();
         }
-
-        // Initialize states guessed counter (if developer flag is enabled)
-        if (classicModeShowStatesGuessed) {
+        if (crackedModeShowStatesGuessed) {
             this.initializeStatesGuessed();
         }
 
@@ -308,7 +298,7 @@ export class GameView {
         }
 
         // Remove all <title> elements to disable tooltips (unless allowStateClicking is enabled)
-        if (!classicModeAllowStateClicking) {
+        if (!crackedModeAllowStateClicking) {
             const titles = svg.querySelectorAll('title');
             titles.forEach(title => title.remove());
         }
@@ -349,7 +339,7 @@ export class GameView {
             stateCodes.push(stateCode);
             
             // Add click handler to each state (only if developer flag is enabled)
-            if (classicModeAllowStateClicking) {
+            if (crackedModeAllowStateClicking) {
                 path.addEventListener('click', () => this.handleStateClick(stateCode));
                 path.style.cursor = 'pointer';
             }
@@ -415,25 +405,11 @@ export class GameView {
 			pathElement.style.opacity = state.getIsHighlighted() ? '0.7' : '1';
 		});
 		
-		// Update multiplier display
-		if (this.mutliplierText) {
-			this.mutliplierText.text(`${this.model.getMultiplier().toFixed(1)}x`);
-			this.multiplierLayer.batchDraw();
-		}
-
-		// Update player points display
-		if (this.playerPointsText) {
-			this.playerPointsText.text(`${this.model.getPlayerPoints()}`);
-			this.playerPointsLayer.batchDraw();
-		}
-
-		// Update game clock display (if enabled)
-		if (classicModeShowGameClock) {
+		// Update developer displays if enabled
+		if (crackedModeShowGameClock) {
 			this.updateGameClockDisplay();
 		}
-
-		// Update states guessed display (if enabled)
-		if (classicModeShowStatesGuessed) {
+		if (crackedModeShowStatesGuessed) {
 			this.updateStatesGuessedDisplay();
 		}
 	}
@@ -539,23 +515,6 @@ export class GameView {
         this.uiLayer.batchDraw();
     }
 
-    /** Reposition game clock based on window size */
-    private repositionGameClock(): void {
-        if (this.gameClockContainer) {
-            // Position clock relative to window size (e.g., 1% from top and left)
-            const topOffset = window.innerHeight * 0.01;
-            const leftOffset = window.innerWidth * 0.01;
-            this.gameClockContainer.style.top = `${topOffset}px`;
-            this.gameClockContainer.style.left = `${leftOffset}px`;
-            
-            // Scale font size based on window height
-            const fontSize = Math.max(16, window.innerHeight * 0.025);
-            this.gameClockContainer.style.fontSize = `${fontSize}px`;
-        }
-    }
-
-
-
     /**
      * Move the left-side image up/down independently of the overlay/map.
      * Positive moves down, negative moves up.
@@ -575,7 +534,7 @@ export class GameView {
         this.stage.add(this.inputTextLayer);
 
         // Create DOM label for developer view (renders on top like game clock)
-        if (classicModeShowInputLabel) {
+        if (crackedModeShowInputLabel) {
             this.inputLabelContainer = document.createElement('div');
             this.inputLabelContainer.id = 'input-label-display';
             this.inputLabelContainer.style.position = 'absolute';
@@ -616,6 +575,15 @@ export class GameView {
             // Process the guess before adding to history
             const inputText = this.model.getInputText();
             if (inputText.trim().length > 0) {
+                // Check if it's a valid state name first
+                if (!this.model.isValidStateName(inputText)) {
+                    // Show lose popup for invalid state name
+                    this.showLosePopup();
+                    this.model.clearInputText();
+                    this.updateInputTextDisplay();
+                    return;
+                }
+                
                 const isCorrect = this.model.processGuess(inputText);
                 
                 if (isCorrect) {
@@ -667,7 +635,7 @@ export class GameView {
             this.inputTextDisplay.y(imgY + imgHeight / 2 - fontSize); // Vertically centered
             
             // Position DOM label above the input box (only if enabled)
-            if (classicModeShowInputLabel && this.inputLabelContainer) {
+            if (crackedModeShowInputLabel && this.inputLabelContainer) {
                 const labelFontSize = Math.max(12, imgHeight * 0.3);
                 this.inputLabelContainer.style.fontSize = `${labelFontSize}px`;
                 this.inputLabelContainer.style.left = `${imgX}px`;
@@ -736,7 +704,55 @@ export class GameView {
         this.historyLayer.batchDraw();
     }
 
-    //GAME CLOCK METHODS (Developer)
+    /** Set a callback to be invoked when a correct answer is given */
+    setOnCorrectAnswerCallback(callback: () => void): void {
+        this.onCorrectAnswerCallback = callback;
+    }
+
+    /** Show a simple centered popup with a message */
+    private showLosePopup(): void {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '100000';
+        overlay.style.pointerEvents = 'auto'; // Block all clicks
+
+        // Create popup
+        const popup = document.createElement('div');
+        popup.style.backgroundColor = 'white';
+        popup.style.padding = '40px 60px';
+        popup.style.borderRadius = '10px';
+        popup.style.fontSize = '32px';
+        popup.style.fontFamily = 'Arial';
+        popup.style.fontWeight = 'bold';
+        popup.style.textAlign = 'center';
+        popup.textContent = 'you lose :(';
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+
+        // Prevent any clicks from going through - do not remove on click
+        overlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        
+        // Disable keyboard input
+        window.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        }, true);
+    }
+
+    // GAME CLOCK METHODS (Developer)
     initializeGameClock() {
         // Create a DOM div for the game clock
         this.gameClockContainer = document.createElement('div');
@@ -798,6 +814,20 @@ export class GameView {
         // This method is kept for compatibility but does nothing
     }
 
+    private repositionGameClock(): void {
+        if (this.gameClockContainer) {
+            // Position in top-left corner with responsive offset
+            const topOffset = window.innerHeight * 0.02;
+            const leftOffset = window.innerWidth * 0.02;
+            this.gameClockContainer.style.top = `${topOffset}px`;
+            this.gameClockContainer.style.left = `${leftOffset}px`;
+            
+            // Responsive font size
+            const fontSize = Math.max(14, window.innerHeight * 0.02);
+            this.gameClockContainer.style.fontSize = `${fontSize}px`;
+        }
+    }
+
     //STATES GUESSED COUNTER METHODS (Developer)
     initializeStatesGuessed() {
         // Create a DOM div for the states guessed counter
@@ -819,72 +849,30 @@ export class GameView {
         this.repositionStatesGuessed();
     }
 
-    private repositionStatesGuessed(): void {
-        if (this.statesGuessedContainer) {
-            // Position below game clock
-            const topOffset = window.innerHeight * 0.01;
-            const leftOffset = window.innerWidth * 0.01;
-            
-            // Calculate position below game clock
-            const clockHeight = classicModeShowGameClock && this.gameClockContainer 
-                ? this.gameClockContainer.offsetHeight 
-                : 0;
-            const gap = 5; // 5px gap between clock and counter
-            
-            this.statesGuessedContainer.style.left = `${leftOffset}px`;
-            this.statesGuessedContainer.style.top = `${topOffset + clockHeight + gap}px`;
-            
-            // Scale font size based on window height
-            const fontSize = Math.max(16, window.innerHeight * 0.025);
-            this.statesGuessedContainer.style.fontSize = `${fontSize}px`;
-        }
-    }
-
     updateStatesGuessedDisplay(): void {
         if (this.statesGuessedContainer) {
             this.statesGuessedContainer.textContent = `(Developer View) States Guessed: ${this.model.getStatesGuessedCount()}`;
         }
     }
 
-    //MULTIPLIER METHODS
-    initializeMultiplier() {
-        this.multiplierLayer = new Konva.Layer();
-        this.stage.add(this.multiplierLayer);
-
-        this.mutliplierText = new Konva.Text({
-            x: this.stage.width() - 120,
-            y: 80, // Moved down to make room for player points above
-            text: `${this.model.getMultiplier().toFixed(1)}x`, //displays multiplier number
-            fontSize: 50,
-            fontFamily: 'Times New Roman',
-            fill: 'white', 
-            align:'right',   //want multiplier to be on the right side of the screem
-        });
-
-        this.multiplierLayer.add(this.mutliplierText);
-    }
-
-    //PLAYER POINTS METHODS
-    initializePlayerPoints() {
-        this.playerPointsLayer = new Konva.Layer();
-        this.stage.add(this.playerPointsLayer);
-
-        this.playerPointsText = new Konva.Text({
-            x: this.stage.width() - 120,
-            y: 20, // Above the multiplier
-            text: `${this.model.getPlayerPoints()}`, //displays player points
-            fontSize: 50,
-            fontFamily: 'Times New Roman',
-            fill: 'white', 
-            align:'right',   //want points to be on the right side of the screen
-        });
-
-        this.playerPointsLayer.add(this.playerPointsText);
-    }
-
-    /** Set a callback to be invoked when a correct answer is given */
-    setOnCorrectAnswerCallback(callback: () => void): void {
-        this.onCorrectAnswerCallback = callback;
+    private repositionStatesGuessed(): void {
+        if (this.statesGuessedContainer) {
+            // Position below the game clock with responsive offset
+            const topOffset = window.innerHeight * 0.02;
+            const leftOffset = window.innerWidth * 0.02;
+            const fontSize = Math.max(14, window.innerHeight * 0.02);
+            
+            // Calculate vertical position: below game clock if visible, otherwise at top
+            let verticalPosition = topOffset;
+            if (crackedModeShowGameClock && this.gameClockContainer) {
+                const clockHeight = this.gameClockContainer.offsetHeight;
+                verticalPosition = topOffset + clockHeight + 5; // 5px gap
+            }
+            
+            this.statesGuessedContainer.style.top = `${verticalPosition}px`;
+            this.statesGuessedContainer.style.left = `${leftOffset}px`;
+            this.statesGuessedContainer.style.fontSize = `${fontSize}px`;
+        }
     }
 
     // show() method is required by ViewManager.ts
@@ -896,18 +884,6 @@ export class GameView {
         }
         if (this.historyLayer) {
             this.historyLayer.show();
-        }
-        if (this.playerPointsLayer) {
-            this.playerPointsLayer.show();
-        }
-        if (this.gameClockContainer) {
-            this.gameClockContainer.style.visibility = 'visible';
-        }
-        if (this.statesGuessedContainer) {
-            this.statesGuessedContainer.style.visibility = 'visible';
-        }
-        if (this.inputLabelContainer) {
-            this.inputLabelContainer.style.visibility = 'visible';
         }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'visible';
@@ -924,28 +900,19 @@ export class GameView {
         if (this.historyLayer) {
             this.historyLayer.hide();
         }
-        if (this.playerPointsLayer) {
-            this.playerPointsLayer.hide();
-        }
-        if (this.gameClockContainer) {
-            this.gameClockContainer.style.visibility = 'hidden';
-        }
-        if (this.statesGuessedContainer) {
-            this.statesGuessedContainer.style.visibility = 'hidden';
-        }
-        if (this.inputLabelContainer) {
-            this.inputLabelContainer.style.visibility = 'hidden';
-        }
         if (this.svgContainer) {
             this.svgContainer.style.visibility = 'hidden';
         }
     }
 
     destroy(): void {
-        if (this.svgContainer) {
-            this.svgContainer.remove();
-            this.svgContainer = null;
+        // Stop clock animation
+        if (this.clockAnimationFrameId !== null) {
+            cancelAnimationFrame(this.clockAnimationFrameId);
+            this.clockAnimationFrameId = null;
         }
+        
+        // Remove developer display containers
         if (this.gameClockContainer) {
             this.gameClockContainer.remove();
             this.gameClockContainer = null;
@@ -958,9 +925,10 @@ export class GameView {
             this.inputLabelContainer.remove();
             this.inputLabelContainer = null;
         }
-        if (this.clockAnimationFrameId !== null) {
-            cancelAnimationFrame(this.clockAnimationFrameId);
-            this.clockAnimationFrameId = null;
+        
+        if (this.svgContainer) {
+            this.svgContainer.remove();
+            this.svgContainer = null;
         }
         // Remove event listeners
         window.removeEventListener('keydown', this.handleKeyPress.bind(this));
@@ -974,9 +942,6 @@ export class GameView {
         }
         if (this.historyLayer) {
             this.historyLayer.destroy();
-        }
-        if (this.playerPointsLayer) {
-            this.playerPointsLayer.destroy();
         }
     }
 }

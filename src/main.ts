@@ -1,7 +1,7 @@
 import { MenuController } from "./Screens/MenuScreen/MenuController";
-import { GameController as ClassicGameController } from "./Screens/GameScreen (Classic Mode)/GameController";
-import { GameController as PracticeGameController } from "./Screens/Game Screen (Practice Mode)/GameController";
-import { GameController as CrackedGameController } from "./Screens/Game Screen (Cracked Mode)/GameController";
+import { GameController as ClassicGameController } from "./Screens/GameScreen (Classic Mode)/classicController";
+import { GameController as PracticeGameController } from "./Screens/Game Screen (Practice Mode)/practiceController";
+import { GameController as CrackedGameController } from "./Screens/Game Screen (Cracked Mode)/crackedController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
 import { skipMenuScreen } from "./sandbox";
 import type { Screen } from "./types";

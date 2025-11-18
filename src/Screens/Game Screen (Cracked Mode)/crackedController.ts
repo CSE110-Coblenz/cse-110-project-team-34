@@ -1,7 +1,7 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
-import { GameView } from "./GameView";
-import { GameModel } from "./GameModel";
+import { GameView } from "./crackedView";
+import { GameModel } from "./crackedModel";
 import { applyCrackedModeDeveloperFlags } from "../../sandbox";
 
 export class GameController {

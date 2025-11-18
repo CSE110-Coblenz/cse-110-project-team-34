@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { GameModel, State } from './GameModel';
+import { GameModel, State } from './practiceModel';
 import { createPixelImage } from '../../utils/KonvaHelpers';
 
 // Helper for sequential layer drawing
