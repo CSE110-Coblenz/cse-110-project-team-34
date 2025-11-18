@@ -1,35 +1,39 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
-import { MenuModel } from "./MenuModel"; // Import its own Model
-import { MenuView } from "./MenuView";   // Import its own View
+import { MenuView } from "./MenuView";
 
 // Export the class so main.ts can import it
 export class MenuController {
-    private model: MenuModel;
     private view: MenuView;
     private switcher: ScreenSwitcher;
 
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
         this.switcher = screenSwitcher;
+        this.view = new MenuView(stage);
 
-        // The CONTROLLER creates and "owns" its Model and View
-        this.model = new MenuModel();
-        this.view = new MenuView(stage); // Controller creates its Model and View
-
-        // --- TODO: Wire up events (The Controller's real job) ---
-        // Here we add interaction logic.
-        // The View will expose its buttons as properties.
-        
-        // Example (once you add the buttons to your MenuView):
-        const withExit = (mode: "practice" | "classic" | "cracked") => {
+        // Wire up Practice button click handler
+        this.view.practiceButton.on('click', () => {
             this.view.animateExit(() => {
-                this.switcher.switchToScreen({ type: "game", mode });
+                // Transition to Practice Mode game screen (uses Game Screen (Practice Mode) folder)
+                this.switcher.switchToScreen({ type: "game", mode: "practice" });
             });
-        };
+        });
 
-        this.view.practiceButton.on('click', () => withExit("practice"));
-        this.view.classicButton.on('click', () => withExit("classic"));
-        this.view.crackedButton.on('click', () => withExit("cracked"));
+        // Wire up Classic button click handler
+        this.view.classicButton.on('click', () => {
+            this.view.animateExit(() => {
+                // Transition to Classic Mode game screen (uses GameScreen (Classic Mode) folder)
+                this.switcher.switchToScreen({ type: "game", mode: "classic" });
+            });
+        });
+        
+        // Wire up Cracked button click handler
+        this.view.crackedButton.on('click', () => {
+            this.view.animateExit(() => {
+                // Transition to Cracked Mode game screen (uses Game Screen (Cracked Mode) folder)
+                this.switcher.switchToScreen({ type: "game", mode: "cracked" });
+            });
+        });
     }
 
     // This method is required by main.ts.

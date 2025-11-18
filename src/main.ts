@@ -1,5 +1,7 @@
 import { MenuController } from "./Screens/MenuScreen/MenuController";
-import { GameController } from "./Screens/GameScreen (Classic Mode)/GameController";
+import { GameController as ClassicGameController } from "./Screens/GameScreen (Classic Mode)/GameController";
+import { GameController as PracticeGameController } from "./Screens/Game Screen (Practice Mode)/GameController";
+import { GameController as CrackedGameController } from "./Screens/Game Screen (Cracked Mode)/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
 import { skipMenuScreen } from "./sandbox";
 import type { Screen } from "./types";
@@ -16,7 +18,9 @@ class Main {
     layer: Konva.Layer;
     currentScreen: GameScreen = GameScreen.Menu;
     menuController: MenuController | null = null;
-    gameController: GameController | null = null;
+    classicGameController: ClassicGameController | null = null;
+    practiceGameController: PracticeGameController | null = null;
+    crackedGameController: CrackedGameController | null = null;
     resultsController: ResultsController | null = null;
 
     constructor() {
@@ -41,7 +45,7 @@ class Main {
 
         // Start the appropriate screen based on developer flag
         if (skipMenuScreen) {
-            this.showGameScreen();
+            this.showGameScreen("classic"); // Default to classic mode when skipping menu
         } else {
             this.showMenuScreen();
         }
@@ -51,7 +55,10 @@ class Main {
         if (screen.type === "menu") {
             this.showMenuScreen();
         } else if (screen.type === "game") {
-            this.showGameScreen();
+            // Transition to Practice Mode game screen (uses Game Screen (Practice Mode) folder)
+            // Transition to Classic Mode game screen (uses GameScreen (Classic Mode) folder)
+            // Transition to Cracked Mode game screen (uses Game Screen (Cracked Mode) folder)
+            this.showGameScreen(screen.mode);
         } else if (screen.type === "result") {
             this.showResultsScreen(screen.score);
         }
@@ -59,10 +66,20 @@ class Main {
 
     showMenuScreen() {
         // Hide and destroy other screens
-        if (this.gameController) {
-            this.gameController.hide();
-            this.gameController.destroy();
-            this.gameController = null;
+        if (this.classicGameController) {
+            this.classicGameController.hide();
+            this.classicGameController.destroy();
+            this.classicGameController = null;
+        }
+        if (this.practiceGameController) {
+            this.practiceGameController.hide();
+            this.practiceGameController.destroy();
+            this.practiceGameController = null;
+        }
+        if (this.crackedGameController) {
+            this.crackedGameController.hide();
+            this.crackedGameController.destroy();
+            this.crackedGameController = null;
         }
         if (this.resultsController) {
             this.resultsController.hide();
@@ -76,7 +93,7 @@ class Main {
         this.layer.draw();
     }
 
-    showGameScreen() {
+    showGameScreen(mode: "classic" | "practice" | "cracked") {
         // Hide and destroy other screens
         if (this.menuController) {
             this.menuController.hide();
@@ -86,10 +103,37 @@ class Main {
             this.resultsController.hide();
             this.resultsController = null;
         }
+        // Clean up any existing game controllers
+        if (this.classicGameController) {
+            this.classicGameController.hide();
+            this.classicGameController.destroy();
+            this.classicGameController = null;
+        }
+        if (this.practiceGameController) {
+            this.practiceGameController.hide();
+            this.practiceGameController.destroy();
+            this.practiceGameController = null;
+        }
+        if (this.crackedGameController) {
+            this.crackedGameController.hide();
+            this.crackedGameController.destroy();
+            this.crackedGameController = null;
+        }
         
         this.layer.destroyChildren();
-        this.gameController = new GameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
-        this.gameController.show();
+        
+        // Create the appropriate game controller based on mode
+        if (mode === "practice") {
+            this.practiceGameController = new PracticeGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.practiceGameController.show();
+        } else if (mode === "classic") {
+            this.classicGameController = new ClassicGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.classicGameController.show();
+        } else if (mode === "cracked") {
+            this.crackedGameController = new CrackedGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.crackedGameController.show();
+        }
+        
         this.currentScreen = GameScreen.Game;
         this.layer.draw();
     }
@@ -100,10 +144,20 @@ class Main {
             this.menuController.hide();
             this.menuController = null;
         }
-        if (this.gameController) {
-            this.gameController.hide();
-            this.gameController.destroy();
-            this.gameController = null;
+        if (this.classicGameController) {
+            this.classicGameController.hide();
+            this.classicGameController.destroy();
+            this.classicGameController = null;
+        }
+        if (this.practiceGameController) {
+            this.practiceGameController.hide();
+            this.practiceGameController.destroy();
+            this.practiceGameController = null;
+        }
+        if (this.crackedGameController) {
+            this.crackedGameController.hide();
+            this.crackedGameController.destroy();
+            this.crackedGameController = null;
         }
         
         this.layer.destroyChildren();

@@ -36,7 +36,7 @@ export const allowStateClicking = false;
 
 export const showStatesGuessed = true;
 
-export const preGuessAllExceptCA = true;
+export const preGuessAllExceptCA = false;
 
 import { GameModel } from './Screens/GameScreen (Classic Mode)/GameModel';
 

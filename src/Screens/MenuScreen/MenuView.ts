@@ -12,9 +12,7 @@ export class MenuView {
 	private overlayLayer: Konva.Layer; // New layer for black/white screen overlays
 	private backgroundImage: Konva.Image | null = null;
 	private baseBackgroundImage: Konva.Image | null = null; // store base for zoom
-	private overlayBackgroundImage: Konva.Image | null = null;
 	private overlayGifElement: HTMLImageElement | null = null; // DOM element for animated GIF
-	private crackedFireGif: HTMLImageElement | null = null; // DOM fire gif for CRACKED hover
 	private vignette: Konva.Rect | null = null; // Vignette effect for animation
 	// Audio visualizer fields
 	private audioContext: AudioContext | null = null;
@@ -292,49 +290,13 @@ export class MenuView {
 		});
 		this.crackedButton.add(crackedText);
 
-		// Prepare DOM fire GIF for cracked button hover
-		if (!this.crackedFireGif) {
-			this.crackedFireGif = document.createElement('img');
-			this.crackedFireGif.src = '/Humble Gift - Paper UI System v1.1/fire.gif';
-			this.crackedFireGif.style.position = 'absolute';
-			this.crackedFireGif.style.width = `${buttonWidth}px`;
-			this.crackedFireGif.style.height = `${buttonHeight}px`;
-			this.crackedFireGif.style.objectFit = 'cover';
-			this.crackedFireGif.style.imageRendering = 'pixelated';
-			this.crackedFireGif.style.pointerEvents = 'none';
-			this.crackedFireGif.style.display = 'none';
-			// Place between background (0) and content (10) so it's behind the text drawn on content layer
-			this.crackedFireGif.style.zIndex = '5';
-			const stageContainer = this.stage.container();
-			stageContainer.style.position = 'relative';
-			stageContainer.appendChild(this.crackedFireGif);
-		}
-
-		// Hover effect for cracked button: show fire gif behind text
+		// Hover effect for cracked button
 		this.crackedButton.on('mouseenter', () => {
-			// Position the gif to align with the cracked button's absolute position
-			const abs = this.crackedButton.getAbsolutePosition();
-			if (this.crackedFireGif) {
-				this.crackedFireGif.style.left = `${abs.x}px`;
-				this.crackedFireGif.style.top = `${abs.y}px`;
-				this.crackedFireGif.style.display = 'block';
-			}
-			// Change CRACKED text color to red on hover
-			crackedText.fill('red');
-			// Make the rect transparent so the gif is visible behind the text
-			crackedRect.fill('rgba(0,0,0,0)');
-			this.contentLayer.batchDraw();
+			crackedRect.fill('#b0b0b0');
 			document.body.style.cursor = 'pointer';
 		});
 		this.crackedButton.on('mouseleave', () => {
-			// Hide the gif and restore the button fill
-			if (this.crackedFireGif) {
-				this.crackedFireGif.style.display = 'none';
-			}
-			// Restore CRACKED text color
-			crackedText.fill('black');
 			crackedRect.fill('#d0d0d0');
-			this.contentLayer.batchDraw();
 			document.body.style.cursor = 'default';
 		});
 		
