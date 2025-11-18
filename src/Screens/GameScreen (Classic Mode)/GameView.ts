@@ -2,7 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { showGameClock, showInputLabel, allowStateClicking, showStatesGuessed } from './sandbox';
+import { showGameClock, showInputLabel, allowStateClicking, showStatesGuessed } from '../../sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {

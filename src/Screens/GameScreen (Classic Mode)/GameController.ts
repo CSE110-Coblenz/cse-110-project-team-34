@@ -2,7 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 import { GameModel } from "./GameModel";
-import { applyDeveloperFlags } from "./sandbox";
+import { applyDeveloperFlags } from "../../sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;

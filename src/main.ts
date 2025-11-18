@@ -1,7 +1,7 @@
 import { MenuController } from "./Screens/MenuScreen/MenuController";
-import { GameController } from "./Screens/GameScreen/GameController";
+import { GameController } from "./Screens/GameScreen (Classic Mode)/GameController";
 import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
-import { skipMenuScreen } from "./Screens/GameScreen/sandbox";
+import { skipMenuScreen } from "./sandbox";
 import type { Screen } from "./types";
 import Konva from 'konva';
 

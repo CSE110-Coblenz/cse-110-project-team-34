@@ -26,19 +26,19 @@
 // ====================================
 // Developer Flags
 // ====================================
-export const skipMenuScreen = true;
+export const skipMenuScreen = false;
 
 export const showGameClock = true;
 
 export const showInputLabel = true;
 
-export const allowStateClicking = true;
+export const allowStateClicking = false;
 
 export const showStatesGuessed = true;
 
-export const preGuessAllExceptCA = false;
+export const preGuessAllExceptCA = true;
 
-import { GameModel } from './GameModel';
+import { GameModel } from './Screens/GameScreen (Classic Mode)/GameModel';
 
 /**
  * Apply developer flag logic to pre-guess states
