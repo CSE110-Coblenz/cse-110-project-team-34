@@ -2,7 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
 import { GameView } from "./GameView";
 import { GameModel } from "./GameModel";
-import { applyDeveloperFlags } from "../../sandbox";
+import { applyClassicModeDeveloperFlags } from "../../sandbox";
 
 export class GameController {
 	private screenSwitcher: ScreenSwitcher;
@@ -45,8 +45,8 @@ export class GameController {
             // Pick a random state on load
             this.view.pickRandomState();
             
-            // Apply developer flags AFTER pickRandomState (which resets colors)
-            applyDeveloperFlags(this.model);
+            // Apply Classic Mode developer flags AFTER pickRandomState (which resets colors)
+            applyClassicModeDeveloperFlags(this.model);
             
             // Refresh view to show developer flag changes
             this.refreshView();

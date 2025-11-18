@@ -44,8 +44,8 @@ class Main {
         });
 
         // Start the appropriate screen based on developer flag
-        if (skipMenuScreen) {
-            this.showGameScreen("classic"); // Default to classic mode when skipping menu
+        if (skipMenuScreen !== "off") {
+            this.showGameScreen(skipMenuScreen);
         } else {
             this.showMenuScreen();
         }

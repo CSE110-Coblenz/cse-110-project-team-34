@@ -2,7 +2,7 @@ import Konva from 'konva';
 import { GameModel, State } from './GameModel';
 import { ensureLiefFontLoaded } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
-import { showGameClock, showInputLabel, allowStateClicking, showStatesGuessed } from '../../sandbox';
+import { classicModeShowGameClock, classicModeShowInputLabel, classicModeAllowStateClicking, classicModeShowStatesGuessed } from '../../sandbox';
 
 // helper for sequential layer drawing
 async function drawSequentially(...layers: Konva.Layer[]): Promise<void> {
@@ -83,12 +83,12 @@ export class GameView {
         this.initializeHistoryDisplay();
 
         // Initialize game clock display (if developer flag is enabled)
-        if (showGameClock) {
+        if (classicModeShowGameClock) {
             this.initializeGameClock();
         }
 
         // Initialize states guessed counter (if developer flag is enabled)
-        if (showStatesGuessed) {
+        if (classicModeShowStatesGuessed) {
             this.initializeStatesGuessed();
         }
 
@@ -304,7 +304,7 @@ export class GameView {
         }
 
         // Remove all <title> elements to disable tooltips (unless allowStateClicking is enabled)
-        if (!allowStateClicking) {
+        if (!classicModeAllowStateClicking) {
             const titles = svg.querySelectorAll('title');
             titles.forEach(title => title.remove());
         }
@@ -345,7 +345,7 @@ export class GameView {
             stateCodes.push(stateCode);
             
             // Add click handler to each state (only if developer flag is enabled)
-            if (allowStateClicking) {
+            if (classicModeAllowStateClicking) {
                 path.addEventListener('click', () => this.handleStateClick(stateCode));
                 path.style.cursor = 'pointer';
             }
@@ -418,12 +418,12 @@ export class GameView {
 		}
 
 		// Update game clock display (if enabled)
-		if (showGameClock) {
+		if (classicModeShowGameClock) {
 			this.updateGameClockDisplay();
 		}
 
 		// Update states guessed display (if enabled)
-		if (showStatesGuessed) {
+		if (classicModeShowStatesGuessed) {
 			this.updateStatesGuessedDisplay();
 		}
 	}
@@ -565,7 +565,7 @@ export class GameView {
         this.stage.add(this.inputTextLayer);
 
         // Create DOM label for developer view (renders on top like game clock)
-        if (showInputLabel) {
+        if (classicModeShowInputLabel) {
             this.inputLabelContainer = document.createElement('div');
             this.inputLabelContainer.id = 'input-label-display';
             this.inputLabelContainer.style.position = 'absolute';
@@ -657,7 +657,7 @@ export class GameView {
             this.inputTextDisplay.y(imgY + imgHeight / 2 - fontSize); // Vertically centered
             
             // Position DOM label above the input box (only if enabled)
-            if (showInputLabel && this.inputLabelContainer) {
+            if (classicModeShowInputLabel && this.inputLabelContainer) {
                 const labelFontSize = Math.max(12, imgHeight * 0.3);
                 this.inputLabelContainer.style.fontSize = `${labelFontSize}px`;
                 this.inputLabelContainer.style.left = `${imgX}px`;
@@ -816,7 +816,7 @@ export class GameView {
             const leftOffset = window.innerWidth * 0.01;
             
             // Calculate position below game clock
-            const clockHeight = showGameClock && this.gameClockContainer 
+            const clockHeight = classicModeShowGameClock && this.gameClockContainer 
                 ? this.gameClockContainer.offsetHeight 
                 : 0;
             const gap = 5; // 5px gap between clock and counter
