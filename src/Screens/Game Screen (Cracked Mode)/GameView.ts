@@ -575,6 +575,15 @@ export class GameView {
             // Process the guess before adding to history
             const inputText = this.model.getInputText();
             if (inputText.trim().length > 0) {
+                // Check if it's a valid state name first
+                if (!this.model.isValidStateName(inputText)) {
+                    // Show lose popup for invalid state name
+                    this.showLosePopup();
+                    this.model.clearInputText();
+                    this.updateInputTextDisplay();
+                    return;
+                }
+                
                 const isCorrect = this.model.processGuess(inputText);
                 
                 if (isCorrect) {
@@ -698,6 +707,49 @@ export class GameView {
     /** Set a callback to be invoked when a correct answer is given */
     setOnCorrectAnswerCallback(callback: () => void): void {
         this.onCorrectAnswerCallback = callback;
+    }
+
+    /** Show a simple centered popup with a message */
+    private showLosePopup(): void {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '100000';
+        overlay.style.pointerEvents = 'auto'; // Block all clicks
+
+        // Create popup
+        const popup = document.createElement('div');
+        popup.style.backgroundColor = 'white';
+        popup.style.padding = '40px 60px';
+        popup.style.borderRadius = '10px';
+        popup.style.fontSize = '32px';
+        popup.style.fontFamily = 'Arial';
+        popup.style.fontWeight = 'bold';
+        popup.style.textAlign = 'center';
+        popup.textContent = 'you lose :(';
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+
+        // Prevent any clicks from going through - do not remove on click
+        overlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        
+        // Disable keyboard input
+        window.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        }, true);
     }
 
     // GAME CLOCK METHODS (Developer)

@@ -1,4 +1,17 @@
-import { MULTIPLIER } from '../../gameConstants';
+/**
+ * Multiplier constants for Classic Mode scoring system
+ */
+const MULTIPLIER = {
+    STARTING_VALUE: 1.0,
+    FLOOR_VALUE: 1.0,
+    INCREMENT_AMOUNT: 0.5,
+    RATE_OF_DECREASING_MULTIPLIER: 0.1,  //decreases 0.1 per second
+};
+
+/**
+ * Base points awarded for correctly guessing a state
+ */
+const basePointsEarned = 100;
 
 /**
  * Mapping from state abbreviation (lowercase) to full state name.
@@ -239,6 +252,7 @@ export class GameModel {
     score: number = 0;
     timerSeconds: number = 0;
     private multiplier: number = MULTIPLIER.STARTING_VALUE;
+    private playerPoints: number = 0;
     private inputText: string = '';
     private inputHistory: string[] = [];
     gameClock: number = 0; // in milliseconds
@@ -333,6 +347,10 @@ export class GameModel {
     // --- Multiplier methods ---
     getMultiplier(): number {
         return this.multiplier;
+    }
+
+    getPlayerPoints(): number {
+        return this.playerPoints;
     }
 
     increaseMultiplier(): void {
@@ -542,7 +560,13 @@ export class GameModel {
         guessedState.isGuessed(true);
         guessedState.color('#00ff00'); // Green
 
+        // Award points: basePointsEarned * current multiplier (rounded up)
+        const pointsToAdd = Math.ceil(basePointsEarned * this.multiplier);
+        this.playerPoints += pointsToAdd;
+
         console.log(`✓ Correct! ${guessedStateName} guessed`);
+        console.log(`Points earned: ${pointsToAdd} (${basePointsEarned} × ${this.multiplier.toFixed(1)}x)`);
+        console.log(`Total points: ${this.playerPoints}`);
 
         // Mark that we've guessed the first neighbor
         if (!this.hasGuessedFirstNeighbor) {

@@ -39,6 +39,9 @@ export class GameController {
             // initialize multiplier display
             this.view.initializeMultiplier();
 
+            // initialize player points display
+            this.view.initializePlayerPoints();
+
             // Set up callback for correct answers
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
 

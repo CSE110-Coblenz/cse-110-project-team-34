@@ -478,6 +478,15 @@ export class GameModel {
     }
 
     /**
+     * Check if a state name is valid (exists in the state list)
+     * @param stateName The full name of the state to check
+     * @returns true if the state name is valid, false otherwise
+     */
+    isValidStateName(stateName: string): boolean {
+        return this.getStateCodeByName(stateName) !== undefined;
+    }
+
+    /**
      * Processes a player's guess with the new simplified rules:
      * - First guess must be a neighbor of the initial state (NOT the initial state itself)
      * - After first correct guess, initial state becomes guessable (red)

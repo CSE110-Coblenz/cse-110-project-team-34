@@ -36,6 +36,10 @@ export class GameView {
     private multiplierLayer!: Konva.Layer;
     private mutliplierText!: Konva.Text;
 
+    //FOR THE PLAYER POINTS
+    private playerPointsLayer!: Konva.Layer;
+    private playerPointsText!: Konva.Text;
+
     // FOR THE GAME CLOCK (Developer) - DOM element
     private gameClockContainer: HTMLDivElement | null = null;
     private animatedClockValue: number = 0;
@@ -415,6 +419,12 @@ export class GameView {
 		if (this.mutliplierText) {
 			this.mutliplierText.text(`${this.model.getMultiplier().toFixed(1)}x`);
 			this.multiplierLayer.batchDraw();
+		}
+
+		// Update player points display
+		if (this.playerPointsText) {
+			this.playerPointsText.text(`${this.model.getPlayerPoints()}`);
+			this.playerPointsLayer.batchDraw();
 		}
 
 		// Update game clock display (if enabled)
@@ -843,7 +853,7 @@ export class GameView {
 
         this.mutliplierText = new Konva.Text({
             x: this.stage.width() - 120,
-            y: 20,
+            y: 80, // Moved down to make room for player points above
             text: `${this.model.getMultiplier().toFixed(1)}x`, //displays multiplier number
             fontSize: 50,
             fontFamily: 'Times New Roman',
@@ -852,6 +862,24 @@ export class GameView {
         });
 
         this.multiplierLayer.add(this.mutliplierText);
+    }
+
+    //PLAYER POINTS METHODS
+    initializePlayerPoints() {
+        this.playerPointsLayer = new Konva.Layer();
+        this.stage.add(this.playerPointsLayer);
+
+        this.playerPointsText = new Konva.Text({
+            x: this.stage.width() - 120,
+            y: 20, // Above the multiplier
+            text: `${this.model.getPlayerPoints()}`, //displays player points
+            fontSize: 50,
+            fontFamily: 'Times New Roman',
+            fill: 'white', 
+            align:'right',   //want points to be on the right side of the screen
+        });
+
+        this.playerPointsLayer.add(this.playerPointsText);
     }
 
     /** Set a callback to be invoked when a correct answer is given */
@@ -868,6 +896,9 @@ export class GameView {
         }
         if (this.historyLayer) {
             this.historyLayer.show();
+        }
+        if (this.playerPointsLayer) {
+            this.playerPointsLayer.show();
         }
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'visible';
@@ -892,6 +923,9 @@ export class GameView {
         }
         if (this.historyLayer) {
             this.historyLayer.hide();
+        }
+        if (this.playerPointsLayer) {
+            this.playerPointsLayer.hide();
         }
         if (this.gameClockContainer) {
             this.gameClockContainer.style.visibility = 'hidden';
@@ -940,6 +974,9 @@ export class GameView {
         }
         if (this.historyLayer) {
             this.historyLayer.destroy();
+        }
+        if (this.playerPointsLayer) {
+            this.playerPointsLayer.destroy();
         }
     }
 }
