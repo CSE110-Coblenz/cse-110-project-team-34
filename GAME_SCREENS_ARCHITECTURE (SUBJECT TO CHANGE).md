@@ -301,8 +301,7 @@ stateDiagram-v2
         [*] --> CrackedPlaying
         CrackedPlaying --> CrackedTyping : User Input
         CrackedTyping --> CrackedCorrect : Valid State
-        CrackedTyping --> LivesLost : Invalid State
-        LivesLost --> LosePopup
+        CrackedTyping --> LosePopup : Invalid State
         LosePopup --> CrackedPlaying
         CrackedCorrect --> CrackedPlaying
         CrackedPlaying --> [*] : Win/Lose
@@ -346,16 +345,6 @@ graph TD
     H --> H1[ResultsController.ts<br/>32 lines]
     H --> H2[ResultsView.ts]
     H --> H3[ResultsModel.ts]
-    
-    style B1 fill:#e1f5ff
-    style B2 fill:#e1f5ff
-    style B3 fill:#e1f5ff
-    style E1 fill:#fff3cd
-    style E2 fill:#fff3cd
-    style F1 fill:#d1ecf1
-    style F2 fill:#d1ecf1
-    style G1 fill:#f8d7da
-    style G2 fill:#f8d7da
 ```
 
 ## Design Patterns Applied
@@ -435,31 +424,31 @@ sequenceDiagram
 | **Total** | **295 lines** | **141 + 131 (base) = 272** | **8% ↓** |
 
 ### Benefits
-- ✅ **52% average reduction** in child controller code
-- ✅ **Single source of truth** for shared game logic
-- ✅ **Consistent interface** across all modes (conceptual integrity)
-- ✅ **Easier extensibility** for new game modes
-- ✅ **Polymorphic interactions** eliminate conditional logic
+-  **52% average reduction** in child controller code
+-  **Single source of truth** for shared game logic
+-  **Consistent interface** across all modes (conceptual integrity)
+-  **Easier extensibility** for new game modes
+-  **Polymorphic interactions** eliminate conditional logic
 
 ## Developer Features
 
 ### Classic Mode
-- 🕐 **Game Clock** (yellow, top-left, 1% offset)
-- 📊 **States Guessed Counter** (below game clock)
-- ⌨️ **Input Label** (above input box)
-- 🖱️ **State Clicking** (developer flag)
-- 🔍 **Console Access** (`window.gameModel`, `window.gameController`)
+-  **Game Clock** (yellow, top-left, 1% offset)
+-  **States Guessed Counter** (below game clock)
+-  **Input Label** (above input box)
+-  **State Clicking** (developer flag)
+-  **Console Access** (`window.gameModel`, `window.gameController`)
 
 ### Practice Mode
-- 🚫 **No developer features** (pure minimal practice mode)
+-  **No developer features** (pure minimal practice mode)
 
 ### Cracked Mode
-- 🕐 **Game Clock** (yellow, top-left, 2% offset)
-- 📊 **States Guessed Counter** (below game clock)
-- ⌨️ **Input Label** (above input box)
-- 🖱️ **State Clicking** (developer flag)
-- ❌ **Lose Popup** (triggers on invalid state, blocks input)
-- ✅ **Invalid State Detection** (validates state names)
+-  **Game Clock** (yellow, top-left, 2% offset)
+-  **States Guessed Counter** (below game clock)
+-  **Input Label** (above input box)
+-  **State Clicking** (developer flag)
+-  **Lose Popup** (triggers on invalid state, blocks input)
+-  **Invalid State Detection** (validates state names)
 
 ### Styling Specifications
 - **Color**: Yellow text (`#ffff00`) on black background (`#000000`)
