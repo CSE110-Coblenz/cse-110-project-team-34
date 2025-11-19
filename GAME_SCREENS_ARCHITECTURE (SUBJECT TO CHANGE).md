@@ -414,17 +414,7 @@ sequenceDiagram
 
 ## Code Metrics
 
-### Controller Size Reduction
-
-| Component | Before | After | Reduction |
-|-----------|--------|-------|-----------|
-| Classic Controller | 123 lines | 59 lines | **52% ↓** |
-| Practice Controller | 77 lines | 37 lines | **52% ↓** |
-| Cracked Controller | 95 lines | 45 lines | **53% ↓** |
-| **Total** | **295 lines** | **141 + 131 (base) = 272** | **8% ↓** |
-
 ### Benefits
--  **52% average reduction** in child controller code
 -  **Single source of truth** for shared game logic
 -  **Consistent interface** across all modes (conceptual integrity)
 -  **Easier extensibility** for new game modes
