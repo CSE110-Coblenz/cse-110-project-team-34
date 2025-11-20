@@ -32,6 +32,7 @@ export abstract class BaseGameView {
     
     protected svgContainer: HTMLDivElement | null = null;
     protected svgPathElements: Map<string, SVGPathElement> = new Map();
+    private minigamePopup!: HTMLDivElement;
     
     protected backgroundImage: Konva.Image | null = null;
     protected overlayBackgroundImage: Konva.Image | null = null;
@@ -71,6 +72,7 @@ export abstract class BaseGameView {
         this.createSVGContainer();
         this.initializeTextInput();
         this.initializeHistoryDisplay();
+        this.initializeMinigamePopup();
         
         // Apply initial offset
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -562,6 +564,34 @@ export abstract class BaseGameView {
     /** Set callback for correct answer events */
     setOnCorrectAnswerCallback(callback: () => void): void {
         this.onCorrectAnswerCallback = callback;
+    }
+
+    private initializeMinigamePopup(): void {
+        this.minigamePopup = document.createElement('div');
+        this.minigamePopup.innerText = "this is a minigame pop up";
+        this.minigamePopup.style.position = 'absolute';
+        this.minigamePopup.style.top = '50%';
+        this.minigamePopup.style.left = '50%';
+        this.minigamePopup.style.transform = 'translate(-50%, -50%)';
+        this.minigamePopup.style.backgroundColor = 'black';
+        this.minigamePopup.style.color = 'yellow';
+        this.minigamePopup.style.padding = '20px';
+        this.minigamePopup.style.border = '2px solid white';
+        this.minigamePopup.style.zIndex = '2000';
+        this.minigamePopup.style.display = 'none';
+        document.body.appendChild(this.minigamePopup);
+    }
+
+    showMinigamePopup(): void {
+        this.minigamePopup.style.display = 'block';
+    }
+
+    hideMinigamePopup(): void {
+        this.minigamePopup.style.display = 'none';
+    }
+
+    getMinigamePopupElement(): HTMLDivElement {
+        return this.minigamePopup;
     }
 
     /** Cleanup */

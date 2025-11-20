@@ -94,6 +94,7 @@ export abstract class BaseGameModel {
     score: number = 0;
     timerSeconds: number = 0;
     gameClock: number = 0;
+    protected isGamePaused: boolean = false;
     
     protected inputText: string = '';
     protected inputHistory: string[] = [];
@@ -147,11 +148,20 @@ export abstract class BaseGameModel {
 
     // --- Game clock methods ---
     incrementGameClock(): void {
+        if (this.isGamePaused) return;
         this.gameClock += 1000;
     }
 
     getGameClock(): number {
         return this.gameClock;
+    }
+
+    setGamePaused(value: boolean): void {
+        this.isGamePaused = value;
+    }
+
+    getIsGamePaused(): boolean {
+        return this.isGamePaused;
     }
 
     // --- States guessed counter ---

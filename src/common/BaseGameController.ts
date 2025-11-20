@@ -79,9 +79,34 @@ export abstract class BaseGameController {
             // Refresh view to show any changes from mode-specific setup
             this.refreshView();
 
+            // Setup minigame popup listener
+            const minigamePopup = this.view.getMinigamePopupElement();
+            minigamePopup.addEventListener('click', () => {
+                this.view.hideMinigamePopup();
+                this.model.setGamePaused(false);
+            });
+
         } catch (err) {
             console.error('❌ Failed to initialize GameController:', err);
         }
+    }
+
+    handleGameTick(): void {
+        if (this.model.getIsGamePaused()) return;
+
+        this.model.incrementGameClock();
+
+        const time = this.model.getGameClock();
+        if (time > 0 && time % 5000 === 0) {
+            if (Math.random() < 0.5) {
+                this.triggerMinigame();
+            }
+        }
+    }
+
+    triggerMinigame(): void {
+        this.model.setGamePaused(true);
+        this.view.showMinigamePopup();
     }
 
     /** Shared win condition logic - same for all modes */

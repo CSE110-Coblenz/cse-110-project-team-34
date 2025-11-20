@@ -37,7 +37,7 @@ export class GameController extends BaseGameController {
 
 		// Start game clock timer (Cracked Mode specific)
 		this.gameClockIntervalId = window.setInterval(() => {
-			this.model.incrementGameClock();
+			this.handleGameTick();
 			this.refreshView();
 		}, 1000); // runs every 1000 ms (1 second)
 	}
