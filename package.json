@@ -2,9 +2,12 @@
   "name": "cse-110-project-team-34",
   "version": "1.0.0",
   "description": "We intend to make a fun, fast-paced geography-learning game geared towards high school students!",
-  "main": "index.js",
+  "main": "src/main.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -18,8 +21,11 @@
   },
   "homepage": "https://github.com/CSE110-Coblenz/cse-110-project-team-34#readme",
   "dependencies": {
-    "konva": "^10.0.8",
-    "@supabase/supabase-js": "^2.78.0",
-    "bcryptjs": "^3.0.3"
+    "konva": "^10.0.8"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3",
+    "vite": "^7.1.12"
   }
 }
