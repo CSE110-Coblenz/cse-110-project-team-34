@@ -202,7 +202,7 @@ export abstract class BaseGameModel {
 
     addToHistory(text: string): void {
         if (text.trim().length > 0) {
-            this.inputHistory.push(text);
+            this.inputHistory.unshift(text);
         }
     }
 
