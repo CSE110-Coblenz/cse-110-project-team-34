@@ -38,6 +38,10 @@ export abstract class BaseGameView {
     protected overlayBackgroundImage: Konva.Image | null = null;
     protected leftSideImage: Konva.Image | null = null;
     protected belowOverlayImage: Konva.Image | null = null;
+
+    protected historyClipGroup!: Konva.Group;
+    protected historyScrollY = 0; 
+    protected maxVisibleEntries = 20; // max visible entry for the list
     
     protected overlayMapOffsetY: number = 0;
     protected overlayBaseX: number | null = null;
@@ -282,6 +286,12 @@ export abstract class BaseGameView {
             const currentText = this.model.getInputText();
             this.model.setInputText(currentText + e.key);
             this.refreshInputText();
+        } else if (e.key === 'ArrowUp' || e.key === ',') {
+            // list scroll up
+            this.scrollHistory(-1);
+        } else if (e.key === 'ArrowDown' || e.key === '.') {
+            // list scroll down
+            this.scrollHistory(1);
         }
     }
 
@@ -289,6 +299,16 @@ export abstract class BaseGameView {
     protected initializeHistoryDisplay(): void {
         this.historyLayer = new Konva.Layer();
         this.stage.add(this.historyLayer);
+
+        // Create a clipping group
+        this.historyClipGroup = new Konva.Group({
+            x: 0,
+            y: 0,
+            clipX: 0,
+            clipY: 0,
+            clipWidth: 200, // width of the text area
+            clipHeight: this.maxVisibleEntries * 24 * 1.2, // fontSize * lineHeight
+        });
 
         this.historyTextDisplay = new Konva.Text({
             x: 0,
@@ -300,11 +320,29 @@ export abstract class BaseGameView {
             align: 'center',
             verticalAlign: 'top',
             width: 200,
-            padding: 10
+            padding: 10,
         });
 
-        this.historyLayer.add(this.historyTextDisplay);
+        this.historyClipGroup.add(this.historyTextDisplay);
+        this.historyLayer.add(this.historyClipGroup);
     }
+    
+    /** Implementing history scrolling */
+    protected scrollHistory(delta: number): void {
+        const history = this.model.getInputHistory();
+        const lineHeight = this.historyTextDisplay.fontSize() * 1.2;
+        const totalHeight = history.length * lineHeight;
+        const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
+
+        this.historyScrollY += delta * lineHeight;
+
+        if (this.historyScrollY < 0) this.historyScrollY = 0;
+        if (this.historyScrollY > maxScroll) this.historyScrollY = maxScroll;
+
+        this.historyTextDisplay.y(-this.historyScrollY);
+        this.historyLayer.batchDraw();
+    }
+
 
     /** Update input text display position */
     protected updateInputTextDisplay(): void {
@@ -337,11 +375,7 @@ export abstract class BaseGameView {
         const imgY = left.y();
         const imgWidth = left.width() * left.scaleX();
         const imgHeight = left.height() * left.scaleY();
-        
-        // Responsive font size based on window height
-        const fontSize = Math.max(14, window.innerHeight * 0.02);
-        this.historyTextDisplay.fontSize(fontSize);
-        
+
         // Account for rotation: the image is rotated -90 degrees
         // After rotation, the top of the image is on the left side
         // Calculate position to start from the top of the rotated image
@@ -349,12 +383,12 @@ export abstract class BaseGameView {
         const topLeftY = imgY - imgWidth / 2;
 
         // Responsive padding
-        const paddingX = imgHeight * 0.2;
-        const paddingY = imgHeight * 0.1;
+        const paddingX = imgHeight * 0.28;
+        const paddingY = imgHeight * 0.2;
 
-        this.historyTextDisplay.x(topLeftX + paddingX);
-        this.historyTextDisplay.y(topLeftY + paddingY);
-        this.historyTextDisplay.width(imgHeight - 2 * paddingX); // Fit within rotated width
+        this.historyClipGroup.x(topLeftX + paddingX);
+        this.historyClipGroup.y(topLeftY + paddingY);
+        this.historyClipGroup.clipWidth(imgHeight - 2 * paddingX);
 
         this.historyLayer.batchDraw();
     }
@@ -424,8 +458,18 @@ export abstract class BaseGameView {
     /** Refresh history from model */
     refreshHistory(): void {
         const history = this.model.getInputHistory();
-        const displayText = history.slice(-10).join('\n');
-        this.historyTextDisplay.text(displayText);
+        this.historyTextDisplay.text(history.join('\n'));
+
+        const lineHeight = this.historyTextDisplay.fontSize() * 1.2;
+        const totalHeight = history.length * lineHeight;
+        const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
+
+        // Auto-scroll only if currently at bottom
+        if (this.historyScrollY > maxScroll) {
+            this.historyScrollY = maxScroll;
+        }
+
+        this.historyTextDisplay.y(-this.historyScrollY);
         this.historyLayer.batchDraw();
     }
 

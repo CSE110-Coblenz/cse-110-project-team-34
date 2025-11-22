@@ -162,7 +162,7 @@ export abstract class BaseGameController {
         );
     }
 
-    /** Called when the player answers a state correctly */
+    /** Called when the player answers a state wrongly */
     private whenWrongAnswer(): void {
     
         // Play sound effect
