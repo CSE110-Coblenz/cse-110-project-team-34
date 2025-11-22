@@ -608,12 +608,12 @@ export abstract class BaseGameView {
     style.textContent = `
         @keyframes green-pulse-filter {
             0% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-            50% { filter: drop-shadow(0 0 20px rgba(0,255,0,0.95)); }
+            50% { filter: drop-shadow(0 0 20px rgba(3, 170, 3, 0.95)); }
             100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
         }
 
         .pulse-once-green {
-            animation: green-pulse-filter 0.55s ease-out;
+            animation: green-pulse-filter 0.4s ease-out;
         }
     `;
     document.head.appendChild(style);
@@ -634,7 +634,7 @@ private injectPulseCSSWrong(): void {
         }
 
         .pulse-once-red {
-            animation: red-pulse-filter 0.55s ease-out;
+            animation: red-pulse-filter 0.4s ease-out;
         }
     `;
     document.head.appendChild(style);
