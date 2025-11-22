@@ -75,7 +75,8 @@ export abstract class BaseGameView {
         this.initializeMinigamePopup();
 
         // Inject CSS for pulse effect 
-        this.injectPulseCSS();
+        this.injectPulseCSSCorrect();
+        this.injectPulseCSSWrong();
         
         // Apply initial offset
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -599,44 +600,80 @@ export abstract class BaseGameView {
     }
 
     // inject pulse for making green pulse around the svg map
-    private injectPulseCSS(): void {
-        // Avoid injecting twice if multiple game modes create views
-        if (document.getElementById("pulse-style")) return;
+    private injectPulseCSSCorrect(): void {
+    if (document.getElementById("pulse-style-green")) return;
 
-        const style = document.createElement("style");
-        style.id = "pulse-style";
-        style.textContent = `
-            #us-map-container svg {
-                transition: filter 0.25s ease-out;
-                will-change: filter;
-            }
+    const style = document.createElement("style");
+    style.id = "pulse-style-green";
+    style.textContent = `
+        @keyframes green-pulse-filter {
+            0% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+            50% { filter: drop-shadow(0 0 20px rgba(0,255,0,0.95)); }
+            100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+        }
 
-            @keyframes green-pulse-filter {
-                0% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-                50% { filter: drop-shadow(0 0 20px rgba(0,255,0,0.95)); }
-                100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-            }
+        .pulse-once-green {
+            animation: green-pulse-filter 0.55s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
-            .pulse-once-svg {
-                animation: green-pulse-filter 0.55s ease-out;
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // inject pulse for making red pulse around the svg map
+
+private injectPulseCSSWrong(): void {
+    if (document.getElementById("pulse-style-red")) return;
+
+    const style = document.createElement("style");
+    style.id = "pulse-style-red";
+    style.textContent = `
+        @keyframes red-pulse-filter {
+            0% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+            50% { filter: drop-shadow(0 0 20px rgba(255,0,0,0.95)); }
+            100% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+        }
+
+        .pulse-once-red {
+            animation: red-pulse-filter 0.55s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
     // pulses green on correct answer
-    pulseMapOnceSVG(): void {
+    pulseMapSVGCorrect(): void {
         if (!this.svgContainer || !this.svgContainer.firstElementChild) return;
         const svg = this.svgContainer.firstElementChild as HTMLElement;
 
-        // Remove the class if present
-        svg.classList.remove('pulse-once-svg');
+        const className = 'pulse-once-green';
 
-        // Use setTimeout to ensure the reflow completes
-        setTimeout(() => {
-            svg.classList.add('pulse-once-svg');
-        }, 20); // small delay (20ms is enough)
+        svg.classList.remove(className);
+        void svg.offsetWidth;
+        svg.classList.add(className);
+
+        const handleAnimationEnd = () => {
+            svg.classList.remove(className);
+            svg.removeEventListener('animationend', handleAnimationEnd);
+        };
+        svg.addEventListener('animationend', handleAnimationEnd);
     }
+
+    pulseMapSVGWrong(): void {
+        if (!this.svgContainer || !this.svgContainer.firstElementChild) return;
+        const svg = this.svgContainer.firstElementChild as HTMLElement;
+
+        const className = 'pulse-once-red';
+
+        svg.classList.remove(className);
+        void svg.offsetWidth;
+        svg.classList.add(className);
+
+        const handleAnimationEnd = () => {
+            svg.classList.remove(className);
+            svg.removeEventListener('animationend', handleAnimationEnd);
+        };
+        svg.addEventListener('animationend', handleAnimationEnd);
+    }   
 
 
     /** Cleanup */

@@ -81,7 +81,7 @@ export abstract class BaseGameController {
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
 
             // Set up callback for wrong answers
-            this.model.setOnWrongGuessCallback(() => this.playWrongSound());
+            this.model.setOnWrongGuessCallback(() => this.whenWrongAnswer());
 
             // Pick a random state on load
             this.view.pickRandomState();
@@ -143,7 +143,7 @@ export abstract class BaseGameController {
         this.playCorrectSound();
 
         // Play green pulse effect
-        this.view.pulseMapOnceSVG();
+        this.view.pulseMapSVGCorrect();
 
         // Refresh view to reflect changes
         this.refreshView();
@@ -160,6 +160,17 @@ export abstract class BaseGameController {
         this.correctSound.play().catch(err =>
             console.warn('Could not play sound:', err)
         );
+    }
+
+    /** Called when the player answers a state correctly */
+    private whenWrongAnswer(): void {
+    
+        // Play sound effect
+        this.playWrongSound();
+
+        // Play red pulse effect
+        this.view.pulseMapSVGWrong();
+
     }
 
     // Play audio on wrong guess
