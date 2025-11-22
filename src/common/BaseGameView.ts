@@ -73,6 +73,9 @@ export abstract class BaseGameView {
         this.initializeTextInput();
         this.initializeHistoryDisplay();
         this.initializeMinigamePopup();
+
+        // Inject CSS for pulse effect 
+        this.injectPulseCSS();
         
         // Apply initial offset
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -257,6 +260,7 @@ export abstract class BaseGameView {
                     if (this.onCorrectAnswerCallback) {
                         this.onCorrectAnswerCallback();
                     }
+
                     // Only add to history if correct (as lowercase)
                     this.model.addToHistory(inputText.toLowerCase());
                     this.updateViewFromModel(); // Update colors
@@ -593,6 +597,47 @@ export abstract class BaseGameView {
     getMinigamePopupElement(): HTMLDivElement {
         return this.minigamePopup;
     }
+
+    // inject pulse for making green pulse around the svg map
+    private injectPulseCSS(): void {
+        // Avoid injecting twice if multiple game modes create views
+        if (document.getElementById("pulse-style")) return;
+
+        const style = document.createElement("style");
+        style.id = "pulse-style";
+        style.textContent = `
+            #us-map-container svg {
+                transition: filter 0.25s ease-out;
+                will-change: filter;
+            }
+
+            @keyframes green-pulse-filter {
+                0% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+                50% { filter: drop-shadow(0 0 20px rgba(0,255,0,0.95)); }
+                100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+            }
+
+            .pulse-once-svg {
+                animation: green-pulse-filter 0.55s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // pulses green on correct answer
+    pulseMapOnceSVG(): void {
+        if (!this.svgContainer || !this.svgContainer.firstElementChild) return;
+        const svg = this.svgContainer.firstElementChild as HTMLElement;
+
+        // Remove the class if present
+        svg.classList.remove('pulse-once-svg');
+
+        // Use setTimeout to ensure the reflow completes
+        setTimeout(() => {
+            svg.classList.add('pulse-once-svg');
+        }, 20); // small delay (20ms is enough)
+    }
+
 
     /** Cleanup */
     destroy(): void {

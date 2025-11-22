@@ -142,6 +142,9 @@ export abstract class BaseGameController {
         // Play sound effect
         this.playCorrectSound();
 
+        // Play green pulse effect
+        this.view.pulseMapOnceSVG();
+
         // Refresh view to reflect changes
         this.refreshView();
 
