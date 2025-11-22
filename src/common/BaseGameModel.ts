@@ -284,6 +284,14 @@ export abstract class BaseGameModel {
     }
 
     /**
+     * Callback function for wrong gues
+     */
+    protected onWrongGuessCallback: (() => void) | null = null;
+    public setOnWrongGuessCallback(cb: () => void): void {
+        this.onWrongGuessCallback = cb;
+    }
+
+    /**
      * Template Method: Processes a guess using shared validation logic,
      * then delegates to mode-specific behavior via onCorrectGuess()
      */
@@ -291,16 +299,19 @@ export abstract class BaseGameModel {
         const guessedStateCode = this.getStateCodeByName(guessedStateName);
         if (!guessedStateCode) {
             console.log(`Unknown state name: ${guessedStateName}`);
+            this.onWrongGuessCallback?.();
             return false;
         }
 
         const guessedState = this.states.get(guessedStateCode);
         if (!guessedState) {
+            this.onWrongGuessCallback?.();
             return false;
         }
 
         if (guessedState.getIsGuessed()) {
             console.log(`${guessedStateName} was already guessed`);
+            this.onWrongGuessCallback?.();
             return false;
         }
 
@@ -308,11 +319,13 @@ export abstract class BaseGameModel {
         
         if (!this.hasGuessedFirstNeighbor && guessedStateCode === this.initialStateCode) {
             console.log(`${guessedStateName} is the initial state and cannot be guessed yet. Guess a neighbor first!`);
+            this.onWrongGuessCallback?.();
             return false;
         }
         
         if (currentColor !== 'red') {
-            console.log(`${guessedStateName} is not currently guessable (must be red)`);
+            console.log(`${guessedStateName} is not currently guessable (must be red)`)
+            this.onWrongGuessCallback?.();
             return false;
         }
 

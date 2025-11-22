@@ -29,8 +29,8 @@ export abstract class BaseGameController {
     protected view: BaseGameView;
     protected model: BaseGameModel;
 
-    private correctSound: HTMLAudioElement | null = null;
-
+    protected correctSound: HTMLAudioElement | null = null;
+    protected wrongSound: HTMLAudioElement | null = null;
     
 
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
@@ -68,6 +68,8 @@ export abstract class BaseGameController {
             // Preload Guess Audio
             this.correctSound = new Audio('/audio/correct.mp3');
             this.correctSound.load(); 
+            this.wrongSound = new Audio('/audio/wrong.mp3');
+            this.wrongSound.load();
 
             // Initialize model with state codes discovered by the view
             this.model.initializeStates(stateCodes, '#adeaffff');
@@ -77,6 +79,9 @@ export abstract class BaseGameController {
 
             // Set up callback for correct answers
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
+
+            // Set up callback for wrong answers
+            this.model.setOnWrongGuessCallback(() => this.playWrongSound());
 
             // Pick a random state on load
             this.view.pickRandomState();
@@ -133,7 +138,7 @@ export abstract class BaseGameController {
     private whenCorrectAnswer(): void {
         // Delegate to child class for mode-specific behavior
         this.onCorrectAnswer();
-        
+
         // Play sound effect
         this.playCorrectSound();
 
@@ -150,6 +155,15 @@ export abstract class BaseGameController {
 
         this.correctSound.currentTime = 0; // rewind instantly
         this.correctSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
+    }
+
+    // Play audio on wrong guess
+    private playWrongSound() {
+        if (!this.wrongSound) return;
+        this.wrongSound.currentTime = 0;
+        this.wrongSound.play().catch(err =>
             console.warn('Could not play sound:', err)
         );
     }
