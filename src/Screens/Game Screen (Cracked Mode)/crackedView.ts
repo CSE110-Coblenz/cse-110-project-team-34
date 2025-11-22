@@ -21,6 +21,9 @@ export class GameView extends BaseGameView {
     
     // Lose popup
     private losePopupContainer: HTMLDivElement | null = null;
+    
+    // Callback to stop game clock in controller
+    private onStopGameClockCallback: (() => void) | null = null;
 
     constructor(stage: Konva.Stage, model: GameModel) {
         super(stage, model);
@@ -266,8 +269,10 @@ export class GameView extends BaseGameView {
                     this.model.addToHistory(inputText.toLowerCase());
                     this.updateViewFromModel(); // Update colors
                     this.refreshHistory();
+                } else {
+                    // Valid state name but not a valid neighbor - show lose popup
+                    this.showLosePopup();
                 }
-                // If incorrect, don't add to history
             }
             // Always clear the input text after Enter
             this.model.clearInputText();
@@ -288,6 +293,17 @@ export class GameView extends BaseGameView {
     /** Show lose popup */
     showLosePopup(): void {
         if (this.losePopupContainer) return; // Already showing
+
+        // Stop the game clock animation
+        if (this.clockAnimationFrameId !== null) {
+            cancelAnimationFrame(this.clockAnimationFrameId);
+            this.clockAnimationFrameId = null;
+        }
+        
+        // Call controller to stop the game clock timer
+        if (this.onStopGameClockCallback) {
+            this.onStopGameClockCallback();
+        }
 
         this.losePopupContainer = document.createElement('div');
         this.losePopupContainer.style.position = 'fixed';
@@ -336,6 +352,11 @@ export class GameView extends BaseGameView {
         if (this.statesGuessedContainer) {
             this.statesGuessedContainer.textContent = `(Developer View) States Guessed: ${this.model.getStatesGuessedCount()}`;
         }
+    }
+
+    /** Set callback for stopping game clock */
+    setOnStopGameClockCallback(callback: () => void): void {
+        this.onStopGameClockCallback = callback;
     }
 
     /** Show view */
