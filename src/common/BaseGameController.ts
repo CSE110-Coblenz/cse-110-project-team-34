@@ -29,6 +29,10 @@ export abstract class BaseGameController {
     protected view: BaseGameView;
     protected model: BaseGameModel;
 
+    private correctSound: HTMLAudioElement | null = null;
+
+    
+
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
         this.screenSwitcher = screenSwitcher;
 
@@ -60,6 +64,10 @@ export abstract class BaseGameController {
 
             // Load the US map SVG
             const stateCodes = await this.view.loadMap('/Blank_US_Map_(states_only).svg');
+
+            // Preload Guess Audio
+            this.correctSound = new Audio('/audio/correct.mp3');
+            this.correctSound.load(); 
 
             // Initialize model with state codes discovered by the view
             this.model.initializeStates(stateCodes, '#adeaffff');
@@ -125,12 +133,25 @@ export abstract class BaseGameController {
     private whenCorrectAnswer(): void {
         // Delegate to child class for mode-specific behavior
         this.onCorrectAnswer();
+        
+        // Play sound effect
+        this.playCorrectSound();
 
         // Refresh view to reflect changes
         this.refreshView();
 
         // Check win condition (same for all modes)
         this.checkWinCondition();
+    }
+
+    // Play audio on correct guess
+    private playCorrectSound() {
+        if (!this.correctSound) return;
+
+        this.correctSound.currentTime = 0; // rewind instantly
+        this.correctSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
     }
 
     /** Expose a public method to refresh the view (useful for console debugging) */
