@@ -15,7 +15,6 @@ import { applyCrackedModeDeveloperFlags } from "../../sandbox";
 export class GameController extends BaseGameController {
 	protected declare model: GameModel; // More specific type
 	protected declare view: GameView; // More specific type
-	private gameClockIntervalId: number | null = null;
 
 	/** Factory method: Create Cracked Mode specific model */
 	protected createModel(): BaseGameModel {
@@ -32,23 +31,11 @@ export class GameController extends BaseGameController {
 		// Apply Cracked Mode developer flags AFTER pickRandomState (which resets colors)
 		applyCrackedModeDeveloperFlags(this.model);
 
-		// Set callback for view to stop game clock
-		this.view.setOnStopGameClockCallback(() => this.stopGameClock());
-
 		// Start game clock timer (Cracked Mode specific)
-		this.gameClockIntervalId = window.setInterval(() => {
+		setInterval(() => {
 			this.model.incrementGameClock();
 			this.refreshView();
 		}, 1000); // runs every 1000 ms (1 second)
-	}
-
-	/** Stop the game clock timer (called when lose popup shows) */
-	public stopGameClock(): void {
-		if (this.gameClockIntervalId !== null) {
-			clearInterval(this.gameClockIntervalId);
-			this.gameClockIntervalId = null;
-			console.log('Game clock stopped');
-		}
 	}
 
 	/** Hook: Cracked Mode does nothing special on correct answer */
