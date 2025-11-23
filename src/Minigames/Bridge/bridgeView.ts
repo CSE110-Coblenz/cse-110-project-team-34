@@ -1,3 +1,5 @@
+// Displays data and UI
+
 import Konva from 'konva';
 
 type GuessCallback = (guess: number) => void;
@@ -6,119 +8,139 @@ export class BridgeView {
     private stage: Konva.Stage;
     private layer: Konva.Layer;
     private popupGroup: Konva.Group;
-    private questionText: Konva.Text;
-    private stateARect: Konva.Rect;
-    private stateBRect: Konva.Rect;
+    private stateAImg: HTMLDivElement;
+    private stateBImg: HTMLDivElement;
+    private questionDiv: HTMLDivElement;
     private guessInput: HTMLInputElement;
-    private submitBtn: HTMLButtonElement;
     private onGuess: GuessCallback | null = null;
 
-    constructor(containerId: string, width: number, height: number) {
-        this.stage = new Konva.Stage({
-            container: containerId,
-            width,
-            height,
-        });
+    private minigamePopupContainer: HTMLDivElement;
+    private contentContainer: HTMLDivElement;
 
-        this.layer = new Konva.Layer();
-        this.stage.add(this.layer);
+    constructor(stage: Konva.Stage, layer: Konva.Layer) {
+        this.stage = stage;
+        this.layer = layer;
 
-        // Popup group
+        // === Konva popup group (for visuals like rectangles/text) ===
         this.popupGroup = new Konva.Group({ visible: false });
         this.layer.add(this.popupGroup);
 
-        // Background rectangle
-        const bg = new Konva.Rect({
-            width: 300,
-            height: 250,
-            fill: 'white',
-            stroke: 'black',
-            strokeWidth: 2,
-            cornerRadius: 10,
-        });
-        this.popupGroup.add(bg);
+        // === HTML modal container for inputs ===
+        // gray overlay behind the popup
+        this.minigamePopupContainer = document.createElement('div');
+        this.minigamePopupContainer.style.position = 'fixed';
+        this.minigamePopupContainer.style.top = '0';
+        this.minigamePopupContainer.style.left = '0';
+        this.minigamePopupContainer.style.width = '100%';
+        this.minigamePopupContainer.style.height = '100%';
+        this.minigamePopupContainer.style.display = 'flex';
+        this.minigamePopupContainer.style.justifyContent = 'center';
+        this.minigamePopupContainer.style.alignItems = 'center';
+        this.minigamePopupContainer.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        this.minigamePopupContainer.style.zIndex = '10000';
+        this.minigamePopupContainer.style.visibility = 'hidden';
+        document.body.appendChild(this.minigamePopupContainer);
 
-        // Question text
-        this.questionText = new Konva.Text({
-            x: 10,
-            y: 10,
-            width: 280,
-            text: '',
-            fontSize: 16,
-            fontFamily: 'Arial',
-            fill: 'black',
-            align: 'center',
-        });
-        this.popupGroup.add(this.questionText);
+        // container for actual minigame content
+        this.contentContainer = document.createElement('div');
+        this.contentContainer.style.background = '#001d3d';
+        this.contentContainer.style.padding = '20px';
+        this.contentContainer.style.borderRadius = '10px';
+        this.contentContainer.style.textAlign = 'center';
+        this.contentContainer.style.display = 'grid';
+        this.contentContainer.style.gridTemplateColumns = '1fr 1fr 1fr 1fr 1fr 1fr';
+        this.contentContainer.style.gridTemplateRows = 'auto';
+        this.contentContainer.style.width = '600px';
+        this.contentContainer.style.height = '400px';
+        this.minigamePopupContainer.appendChild(this.contentContainer);
 
-        // Two rectangles for state images
-        this.stateARect = new Konva.Rect({
-            x: 30,
-            y: 50,
-            width: 100,
-            height: 100,
-            fill: '#eee',
-            stroke: '#ccc',
-            strokeWidth: 2,
-        });
-        this.popupGroup.add(this.stateARect);
+        // question text
+        this.questionDiv = document.createElement('div');
+        this.questionDiv.style.gridColumn = '1 / 7';  // span all six columns
+        this.questionDiv.style.gridRow = '1 / 2';
+        this.questionDiv.style.fontSize = '24px';
+        this.questionDiv.style.fontFamily = 'sans-serif';
+        this.questionDiv.style.color = 'white';
+        this.questionDiv.style.textAlign = 'center';
+        this.questionDiv.style.marginBottom = '10px';
+        this.contentContainer.appendChild(this.questionDiv);
 
-        this.stateBRect = new Konva.Rect({
-            x: 170,
-            y: 50,
-            width: 100,
-            height: 100,
-            fill: '#eee',
-            stroke: '#ccc',
-            strokeWidth: 2,
-        });
-        this.popupGroup.add(this.stateBRect);
+        // placeholder containers for state imgs
+        this.stateAImg = document.createElement('div');
+        this.stateAImg.style.width = '100px';
+        this.stateAImg.style.height = '100px';
+        this.stateAImg.style.backgroundColor = '#104F80'; // placeholder color
+        this.stateAImg.style.gridColumn = '2 / 3';
+        this.stateAImg.style.marginLeft = '50px'
+        this.stateAImg.style.gridRow = '2 / 3';
+        this.contentContainer.appendChild(this.stateAImg);
 
-        // HTML input for guess
+        this.stateBImg = document.createElement('div');
+        this.stateBImg.style.width = '100px';
+        this.stateBImg.style.height = '100px';
+        this.stateBImg.style.backgroundColor = '#CBE9FF'; // different placeholder color
+        this.stateBImg.style.gridColumn = '4 / 5';
+        this.stateBImg.style.gridRow = '2 / 3';
+        this.contentContainer.appendChild(this.stateBImg);
+
+
+        // === Input and submit button ===
         this.guessInput = document.createElement('input');
         this.guessInput.type = 'number';
-        this.guessInput.style.position = 'absolute';
-        this.guessInput.style.left = `${this.stage.container().offsetLeft + 80}px`;
-        this.guessInput.style.top = `${this.stage.container().offsetTop + 170}px`;
-        this.guessInput.style.width = '140px';
-        document.body.appendChild(this.guessInput);
+        this.guessInput.style.width = '30px';
+        this.guessInput.style.height = '20px';
+        this.guessInput.style.marginBottom = '10px';
+        this.guessInput.style.alignSelf = 'center';
+        this.guessInput.style.gridColumn = '3 / 4';
+        this.guessInput.style.marginLeft = '25px';
+        this.guessInput.style.gridRow = '3 / 4';
+        this.contentContainer.appendChild(this.guessInput);
 
-        // Submit button
-        this.submitBtn = document.createElement('button');
-        this.submitBtn.textContent = 'Submit';
-        this.submitBtn.style.position = 'absolute';
-        this.submitBtn.style.left = `${this.stage.container().offsetLeft + 110}px`;
-        this.submitBtn.style.top = `${this.stage.container().offsetTop + 200}px`;
-        document.body.appendChild(this.submitBtn);
-
-        this.submitBtn.addEventListener('click', () => {
+        // enter key submits the guess
+        this.guessInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
             if (this.onGuess) {
                 const value = parseInt(this.guessInput.value);
                 if (!isNaN(value)) this.onGuess(value);
             }
+        }
         });
+
+        // ensures only numbers can be entered
+        this.guessInput.addEventListener('input', (e) => {
+        this.guessInput.value = this.guessInput.value.replace(/[^\d]/g, '');
+        });
+
+        this.guessInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const value = parseInt(this.guessInput.value);
+                if (!isNaN(value) && this.onGuess) this.onGuess(value);
+
+                // Prevent the event from bubbling to main game
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+
+
     }
 
     /** Show popup question */
     showMinigameQuestion(stateA: string, stateB: string) {
-        this.questionText.text(`Guess the minimum number of states connecting ${stateA.toUpperCase()} and ${stateB.toUpperCase()}:`);
-        this.popupGroup.visible(true);
+    this.questionDiv.textContent = 
+        `What's the smallest number of states that connect ${stateA} and ${stateB}?`;
+    this.minigamePopupContainer.style.visibility = 'visible';
+    this.guessInput.value = '';
+    this.guessInput.focus();
+}
 
-        // TODO: set state images here using Konva.Image
-        // Example placeholder:
-        this.stateARect.fill('#eee');
-        this.stateBRect.fill('#eee');
-
-        this.layer.draw();
-        this.guessInput.value = '';
-        this.guessInput.focus();
-    }
 
     /** Show result and hide popup */
     showMinigameResult(isCorrect: boolean, answer: number) {
         alert(isCorrect ? 'Correct!' : `Wrong! The answer is ${answer}.`);
         this.popupGroup.visible(false);
         this.layer.draw();
+        this.minigamePopupContainer.style.visibility = 'hidden';
     }
 
     /** Register callback for guess submission */
