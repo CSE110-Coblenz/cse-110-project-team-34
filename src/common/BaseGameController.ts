@@ -108,13 +108,13 @@ export abstract class BaseGameController {
             }
         }, 20000);
 
-        // Bridge minigame: every 40 seconds with 25% chance
+        // Bridge minigame: every 30 seconds with no randomness
         this.bridgeMinigameCheckInterval = setInterval(() => {
             if (this.model.getIsGamePaused()) return;
             if (this.model.getStatesGuessedCount() >= 50) return;
 
             // trigger bridge minigame every 30 seconds
-                this.triggerBridgeMinigame();
+            this.triggerBridgeMinigame();
         }, 30000);
     }
 
