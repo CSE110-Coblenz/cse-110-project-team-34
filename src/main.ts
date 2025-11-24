@@ -139,7 +139,7 @@ class Main {
         
         // === MINIGAME MVC SETUP ===
 
-        const bridgeView = new BridgeView('container', window.innerWidth, window.innerHeight);
+        const bridgeView = new BridgeView(this.stage, this.layer);
         const bridgeModel = new BridgeModel();
         const bridgeController = new BridgeController(bridgeView, bridgeModel);
 
