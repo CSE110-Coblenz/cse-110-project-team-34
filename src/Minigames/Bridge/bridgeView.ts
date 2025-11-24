@@ -93,7 +93,7 @@ export class BridgeView {
 
         // === Input and submit button ===
         this.guessInput = document.createElement('input');
-        this.guessInput.type = 'number';
+        // this.guessInput.type = 'number';
         this.guessInput.style.width = '30px';
         this.guessInput.style.height = '20px';
         this.guessInput.style.marginBottom = '10px';
@@ -102,6 +102,8 @@ export class BridgeView {
         this.guessInput.style.marginLeft = '35px';
         this.guessInput.style.marginTop = '35px'; 
         this.guessInput.style.gridRow = '3 / 4';
+        this.guessInput.style.outline = 'none';
+        this.guessInput.style.caretColor = 'transparent';
         this.contentContainer.appendChild(this.guessInput);
 
         // correct/incorrect answer text
