@@ -143,7 +143,34 @@ export class MenuView {
 			fill: '#000000',
 		});
 		startButton.add(startButtonText);
+
+		//Create text that informs the player that a keyboard is required to play
+		const keyBoardWarningRect = new Konva.Rect({
+			x: (startButtonWidth - 850) /2,
+			y: 100,
+			width: 820,
+			height: startButtonHeight,
+			fill: '#651111ff',
+			stroke: '#000000',
+			strokeWidth: 3,
+			cornerRadius: 10,
+		});
+		startButton.add(keyBoardWarningRect);
 		
+		const keyBoardWarningText = new Konva.Text({
+			text: 'ATTENTION: This game requires a keyboard to play!',
+			fontSize: 36,
+			fontFamily: 'DungeonFont',
+			x: (startButtonWidth - 850) /2,
+			y: 100,
+			width: 850,
+			height: startButtonHeight,
+			align: 'center',
+			verticalAlign: 'middle',
+			fill: '#ecd3d3ff',
+		});
+		startButton.add(keyBoardWarningText);
+
 		// Add hover effects
 		startButton.on('mouseenter', () => {
 			startButtonRect.fill('#e0e0e0');
@@ -471,7 +498,6 @@ export class MenuView {
 		
 		// Start hidden by default, the App/ViewManager will show it
 		this.hide();
-
 	}
 	
 	/**
