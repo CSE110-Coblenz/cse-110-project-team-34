@@ -64,7 +64,7 @@ export class BridgeView {
         this.questionDiv.style.gridColumn = '1 / 7';  // span all six columns
         this.questionDiv.style.gridRow = '1 / 2';
         this.questionDiv.style.fontSize = '24px';
-        this.questionDiv.style.fontFamily = 'sans-serif';
+        this.questionDiv.style.fontFamily = 'Lief, Arial, sans-serif';
         this.questionDiv.style.color = 'white';
         this.questionDiv.style.textAlign = 'center';
         this.questionDiv.style.marginBottom = '10px';
@@ -101,12 +101,14 @@ export class BridgeView {
         this.guessInput.style.marginTop = '35px'; 
         this.guessInput.style.gridRow = '3 / 4';
         this.guessInput.style.outline = 'none';
+        this.guessInput.style.border = '2px solid gray';
+        this.guessInput.style.fontFamily = 'Lief, Arial, sans-serif';
         this.guessInput.style.caretColor = 'transparent';
         this.contentContainer.appendChild(this.guessInput);
 
         // correct/incorrect answer text
         this.resultText = document.createElement('div');
-        this.resultText.style.fontFamily = 'sans-serif';
+        this.resultText.style.fontFamily = 'Lief, Arial, sans-serif';
         this.resultText.style.padding = '10px';
         this.minigamePopupContainer.appendChild(this.resultText);
 
