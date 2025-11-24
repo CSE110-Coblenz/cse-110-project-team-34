@@ -26,14 +26,14 @@
 // Developer Flags
 // ====================================
 // Set to "classic", "practice", "cracked" to skip menu, or "off" to show menu
-export const skipMenuScreen: "off" | "classic" | "practice" | "cracked" = "cracked";
+export const skipMenuScreen: "off" | "classic" | "practice" | "cracked"  = "classic";
 
 // Classic Mode Developer Flags
 export const classicModeShowGameClock = true;
 export const classicModeShowInputLabel = true;
 export const classicModeAllowStateClicking = false;
 export const classicModeShowStatesGuessed = true;
-export const classicModePreGuessAllExceptCA = false;
+export const classicModePreGuessAllExceptCA = true;
 
 // Cracked Mode Developer Flags
 export const crackedModeShowGameClock = true;
