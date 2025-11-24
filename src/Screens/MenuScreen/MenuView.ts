@@ -158,7 +158,7 @@ export class MenuView {
 		startButton.add(keyBoardWarningRect);
 		
 		const keyBoardWarningText = new Konva.Text({
-			text: 'ATTENTION: This game requires a keyboard to play!',
+			text: 'Attention! This game requires a keyboard to play!',
 			fontSize: 36,
 			fontFamily: 'DungeonFont',
 			x: (startButtonWidth - 850) /2,
