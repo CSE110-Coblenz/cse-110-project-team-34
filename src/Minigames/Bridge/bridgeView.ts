@@ -1,6 +1,7 @@
 // Displays data and UI
 
 import Konva from 'konva';
+import { BaseGameView } from '../../common/BaseGameView';
 
 type GuessCallback = (guess: number) => void;
 
@@ -12,14 +13,19 @@ export class BridgeView {
     private stateBImg: HTMLDivElement;
     private questionDiv: HTMLDivElement;
     private guessInput: HTMLInputElement;
+    private resultText: HTMLDivElement;
     private onGuess: GuessCallback | null = null;
 
     private minigamePopupContainer: HTMLDivElement;
     private contentContainer: HTMLDivElement;
 
-    constructor(stage: Konva.Stage, layer: Konva.Layer) {
+    private mainGameView: BaseGameView;
+    private wasMainGameActive: boolean = false;
+
+    constructor(stage: Konva.Stage, layer: Konva.Layer, mainGameView: BaseGameView) {
         this.stage = stage;
         this.layer = layer;
+        this.mainGameView = mainGameView;
 
         // === Konva popup group (for visuals like rectangles/text) ===
         this.popupGroup = new Konva.Group({ visible: false });
@@ -36,6 +42,7 @@ export class BridgeView {
         this.minigamePopupContainer.style.display = 'flex';
         this.minigamePopupContainer.style.justifyContent = 'center';
         this.minigamePopupContainer.style.alignItems = 'center';
+        this.minigamePopupContainer.style.flexDirection = 'column-reverse';
         this.minigamePopupContainer.style.backgroundColor = 'rgba(0,0,0,0.5)';
         this.minigamePopupContainer.style.zIndex = '10000';
         this.minigamePopupContainer.style.visibility = 'hidden';
@@ -92,25 +99,23 @@ export class BridgeView {
         this.guessInput.style.marginBottom = '10px';
         this.guessInput.style.alignSelf = 'center';
         this.guessInput.style.gridColumn = '3 / 4';
-        this.guessInput.style.marginLeft = '25px';
+        this.guessInput.style.marginLeft = '35px';
+        this.guessInput.style.marginTop = '35px'; 
         this.guessInput.style.gridRow = '3 / 4';
         this.contentContainer.appendChild(this.guessInput);
 
-        // enter key submits the guess
-        this.guessInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            if (this.onGuess) {
-                const value = parseInt(this.guessInput.value);
-                if (!isNaN(value)) this.onGuess(value);
-            }
-        }
-        });
+        // correct/incorrect answer text
+        this.resultText = document.createElement('div');
+        this.resultText.style.fontFamily = 'sans-serif';
+        this.resultText.style.padding = '10px';
+        this.minigamePopupContainer.appendChild(this.resultText);
 
         // ensures only numbers can be entered
         this.guessInput.addEventListener('input', (e) => {
         this.guessInput.value = this.guessInput.value.replace(/[^\d]/g, '');
         });
 
+        // enter key submits guess
         this.guessInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const value = parseInt(this.guessInput.value);
@@ -121,26 +126,35 @@ export class BridgeView {
                 e.preventDefault();
             }
         });
-
-
     }
 
     /** Show popup question */
     showMinigameQuestion(stateA: string, stateB: string) {
-    this.questionDiv.textContent = 
-        `What's the smallest number of states that connect ${stateA} and ${stateB}?`;
-    this.minigamePopupContainer.style.visibility = 'visible';
-    this.guessInput.value = '';
-    this.guessInput.focus();
-}
+        this.questionDiv.textContent = 
+            `What's the smallest number of states that connect ${stateA} and ${stateB}?`;
+        this.minigamePopupContainer.style.visibility = 'visible';
+        this.guessInput.value = '';
+        this.guessInput.focus();
+    }
 
 
     /** Show result and hide popup */
     showMinigameResult(isCorrect: boolean, answer: number) {
-        alert(isCorrect ? 'Correct!' : `Wrong! The answer is ${answer}.`);
-        this.popupGroup.visible(false);
-        this.layer.draw();
-        this.minigamePopupContainer.style.visibility = 'hidden';
+        if (isCorrect === true) {
+            this.resultText.style.color = 'lightgreen';
+            this.resultText.textContent = 'Correct!';
+        } else if (isCorrect === false) {
+            this.resultText.style.color = 'red';
+            this.resultText.textContent = `Wrong! The answer is ${answer}.`;
+        }
+        this.resultText.style.visibility = 'visible';
+        this.minigamePopupContainer.style.visibility = 'visible';
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            this.resultText.style.visibility = 'hidden';
+            this.minigamePopupContainer.style.visibility = 'hidden';
+        }, 3000);
     }
 
     /** Register callback for guess submission */
