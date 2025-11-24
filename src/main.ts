@@ -6,9 +6,6 @@ import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
 import { skipMenuScreen } from "./sandbox";
 import type { Screen } from "./types";
 import Konva from 'konva';
-import { BridgeView } from '../src/Minigames/Bridge/bridgeView';
-import { BridgeModel } from '../src/Minigames/Bridge/bridgeModel';
-import { BridgeController } from '../src/Minigames/Bridge/bridgeController';
 
 enum GameScreen {
     Menu,
@@ -136,22 +133,6 @@ class Main {
             this.crackedGameController = new CrackedGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
             this.crackedGameController.show();
         }
-        
-        // === MINIGAME MVC SETUP ===
-
-        const bridgeView = new BridgeView(this.stage, this.layer);
-        const bridgeModel = new BridgeModel();
-        const bridgeController = new BridgeController(bridgeView, bridgeModel);
-
-        // Start the minigame immediately or hook it to a button in the game screen
-        bridgeController.startMinigame();
-
-        this.currentScreen = GameScreen.Game;
-        this.layer.draw();
-
-
-        this.currentScreen = GameScreen.Game;
-        this.layer.draw();
     }
 
     showResultsScreen(score: number) {
