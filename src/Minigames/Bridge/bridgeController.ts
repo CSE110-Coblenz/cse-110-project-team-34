@@ -1,4 +1,5 @@
 // Handles user input, updates model, updates view
+// forwards the guess to the model and updates view based on result
 
 import { findShortestBridgeSize } from '../../utils/bridgeMinigameUtils';
 import { stateAdjacencyList, stateNames } from '../../common/USMapData';
@@ -10,7 +11,6 @@ export class BridgeController {
     private view: BridgeView;
     private model: BridgeModel;
     private baseModel: BaseGameModel;
-    private currentAnswer: number = 0;
     private stateA: string = '';
     private stateB: string = '';
     private stateAName: string = '';
@@ -56,26 +56,19 @@ export class BridgeController {
         this.stateA = a;
         this.stateB = b;
 
-        this.currentAnswer = findShortestBridgeSize(a, b);
-
         this.stateAName = stateNames.get(a) || a;
         this.stateBName = stateNames.get(b) || b;
 
         // this.baseModel.pauseGameClock();
         this.view.showMinigameQuestion(this.stateAName, this.stateBName);
+        // tells model the correct answer
+        const answer = findShortestBridgeSize(a, b);
+        this.model.setCorrectAnswer(answer);
     }
 
-
-    /** Checks the player's guess */
+    // passes user guess to model and gets result from mode to show result in view
     private checkGuess(userGuess: number) {
-        const isCorrect = userGuess === this.currentAnswer;
-
-        // Update model score
-        if (isCorrect) this.model.incrementScore();
-        else this.model.decrementScore();
-
-        // Show result in the view
-        this.view.showMinigameResult(isCorrect, this.currentAnswer);
-        this.resumeClock();
+        const result = this.model.checkGuess(userGuess);
+        this.view.showMinigameResult(result.isCorrect, result.correctAnswer);
     }
 }
