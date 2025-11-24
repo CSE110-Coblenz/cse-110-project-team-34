@@ -19,13 +19,11 @@ export class BridgeView {
     private minigamePopupContainer: HTMLDivElement;
     private contentContainer: HTMLDivElement;
 
-    private mainGameView: BaseGameView;
     private wasMainGameActive: boolean = false;
 
-    constructor(stage: Konva.Stage, layer: Konva.Layer, mainGameView: BaseGameView) {
+    constructor(stage: Konva.Stage, layer: Konva.Layer) {
         this.stage = stage;
         this.layer = layer;
-        this.mainGameView = mainGameView;
 
         // === Konva popup group (for visuals like rectangles/text) ===
         this.popupGroup = new Konva.Group({ visible: false });

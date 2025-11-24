@@ -10,29 +10,27 @@ import {BaseGameModel} from '../../common/BaseGameModel';
 export class BridgeController {
     private view: BridgeView;
     private model: BridgeModel;
-    private baseModel: BaseGameModel;
     private stateA: string = '';
     private stateB: string = '';
     private stateAName: string = '';
     private stateBName: string = '';
 
 
-    constructor(view: BridgeView, model: BridgeModel, baseModel: BaseGameModel) {
+    constructor(view: BridgeView, model: BridgeModel) {
         this.view = view;
         this.model = model;
-        this.baseModel = baseModel;
 
         // Register callback for when user submits a guess
         this.view.onGuessSubmitted((guess: number) => this.checkGuess(guess));
     }
     
-    pauseClock() {
-        this.baseModel.pauseGameClock();
-    }
+    // pauseClock() {
+    //     this.baseModel.pauseGameClock();
+    // }
 
-    resumeClock() {
-        this.baseModel.resumeGameClock();
-    }
+    // resumeClock() {
+    //     this.baseModel.resumeGameClock();
+    // }
 
 
     /** Starts a new minigame round */
