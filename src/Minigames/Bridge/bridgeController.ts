@@ -23,14 +23,6 @@ export class BridgeController {
         // Register callback for when user submits a guess
         this.view.onGuessSubmitted((guess: number) => this.checkGuess(guess));
     }
-    
-    // pauseClock() {
-    //     this.baseModel.pauseGameClock();
-    // }
-
-    // resumeClock() {
-    //     this.baseModel.resumeGameClock();
-    // }
 
 
     /** Starts a new minigame round */
