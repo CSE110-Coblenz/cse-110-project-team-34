@@ -95,6 +95,8 @@ export abstract class BaseGameModel {
     timerSeconds: number = 0;
     gameClock: number = 0;
     
+    protected isGamePaused: boolean = false;
+
     protected inputText: string = '';
     protected inputHistory: string[] = [];
 
@@ -152,6 +154,16 @@ export abstract class BaseGameModel {
 
     getGameClock(): number {
         return this.gameClock;
+    }
+
+    // --- Pause state methods ---
+    getIsGamePaused(): boolean {
+        return this.isGamePaused;
+    }
+
+    setGamePaused(paused: boolean): void {
+        this.isGamePaused = paused;
+        console.log(`Game paused: ${paused}`);
     }
 
     // --- States guessed counter ---
