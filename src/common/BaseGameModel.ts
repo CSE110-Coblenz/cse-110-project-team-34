@@ -241,7 +241,12 @@ export abstract class BaseGameModel {
         const initialState = this.states.get(this.initialStateCode);
         
         if (initialState) {
-            initialState.color('pink');
+            // Do not override a guessed state to pink; keep it green if already guessed
+            if (!initialState.getIsGuessed()) {
+                initialState.color('pink');
+            } else {
+                initialState.color('#00ff00');
+            }
             const neighbors = this.getNeighbors(this.initialStateCode);
             neighbors.forEach((neighborCode) => {
                 const neighborState = this.states.get(neighborCode);

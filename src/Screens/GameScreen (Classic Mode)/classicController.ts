@@ -10,7 +10,7 @@ import { BaseGameModel } from "../../common/BaseGameModel";
 import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./classicView";
 import { GameModel } from "./classicModel";
-import { applyClassicModeDeveloperFlags } from "../../sandbox";
+import { applyClassicModeDeveloperFlags, classicModePreGuessAllExceptCA } from "../../sandbox";
 
 export class GameController extends BaseGameController {
 	protected declare model: GameModel; // More specific type
@@ -30,6 +30,21 @@ export class GameController extends BaseGameController {
 	protected setupModeSpecificFeatures(): void {
 		// Apply Classic Mode developer flags AFTER pickRandomState (which resets colors)
 		applyClassicModeDeveloperFlags(this.model);
+
+		// Ensure the initially selected state starts as "guessed" and remains that way
+		// (skip when the developer flag for pre-guessing all except CA is active)
+		if (!classicModePreGuessAllExceptCA) {
+			const initialCode = this.model.getCurrentStateCode();
+			if (initialCode) {
+				const initialState = this.model.getState(initialCode);
+				if (initialState && !initialState.getIsGuessed()) {
+					initialState.isGuessed(true).color('#00ff00');
+					// Propagate neighbor guessable state and refresh view immediately
+					this.model.updateGuessableStates();
+					this.refreshView();
+				}
+			}
+		}
 
 		// Start multiplier decrease timer (Classic Mode specific)
 		setInterval(() => {
