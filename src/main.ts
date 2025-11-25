@@ -2,7 +2,10 @@ import { MenuController } from "./Screens/MenuScreen/MenuController";
 import { GameController as ClassicGameController } from "./Screens/GameScreen (Classic Mode)/classicController";
 import { GameController as PracticeGameController } from "./Screens/Game Screen (Practice Mode)/practiceController";
 import { GameController as CrackedGameController } from "./Screens/Game Screen (Cracked Mode)/crackedController";
-import { ResultsController } from "./Screens/ResultsScreen/ResultsController";
+import { ResultsController as ClassicResultsController } from "./Screens/ResultsScreen (Classic Mode)/classicResultsController";
+import { ResultsController as CrackedResultsController} from "./Screens/ResultsScreen (Cracked Mode)/crackedResultsController";
+import { ResultsController as PracticeResultsController} from "./Screens/ResultsScreen (Practice Mode)/practiceResultsController";
+
 import { skipMenuScreen } from "./sandbox";
 import type { Screen } from "./types";
 import Konva from 'konva';
@@ -21,7 +24,9 @@ class Main {
     classicGameController: ClassicGameController | null = null;
     practiceGameController: PracticeGameController | null = null;
     crackedGameController: CrackedGameController | null = null;
-    resultsController: ResultsController | null = null;
+    classicResultsController: ClassicResultsController | null = null;
+    practiceResultsController: PracticeResultsController | null = null;
+    crackedResultsController: CrackedResultsController | null = null
 
     constructor() {
         const stageWidth = window.innerWidth;
@@ -60,7 +65,7 @@ class Main {
             // Transition to Cracked Mode game screen (uses Game Screen (Cracked Mode) folder)
             this.showGameScreen(screen.mode);
         } else if (screen.type === "result") {
-            this.showResultsScreen(screen.score);
+            this.showResultsScreen(screen.score, screen.mode);
         }
     }
 
@@ -81,9 +86,17 @@ class Main {
             this.crackedGameController.destroy();
             this.crackedGameController = null;
         }
-        if (this.resultsController) {
-            this.resultsController.hide();
-            this.resultsController = null;
+        if (this.classicResultsController) {
+            this.classicResultsController.hide();
+            this.classicResultsController = null;
+        }
+        if (this.practiceResultsController) {
+            this.practiceResultsController.hide();
+            this.practiceResultsController = null;
+        }
+        if (this.crackedResultsController) {
+            this.crackedResultsController.hide();
+            this.crackedResultsController = null;
         }
         
         this.layer.destroyChildren(); // Clear the layer
@@ -99,10 +112,19 @@ class Main {
             this.menuController.hide();
             this.menuController = null;
         }
-        if (this.resultsController) {
-            this.resultsController.hide();
-            this.resultsController = null;
+        if (this.classicResultsController) {
+            this.classicResultsController.hide();
+            this.classicResultsController = null;
         }
+        if (this.practiceResultsController) {
+            this.practiceResultsController.hide();
+            this.practiceResultsController = null;
+        }
+        if (this.crackedResultsController) {
+            this.crackedResultsController.hide();
+            this.crackedResultsController = null;
+        }
+        
         // Clean up any existing game controllers
         if (this.classicGameController) {
             this.classicGameController.hide();
@@ -138,7 +160,7 @@ class Main {
         this.layer.draw();
     }
 
-    showResultsScreen(score: number) {
+    showResultsScreen(score: number, mode: "classic" | "practice" | "cracked") {
         // Hide and destroy other screens
         if (this.menuController) {
             this.menuController.hide();
@@ -161,9 +183,18 @@ class Main {
         }
         
         this.layer.destroyChildren();
-        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
-        this.resultsController.setScore(score);
-        this.resultsController.show();
+        
+        if (mode === 'practice') {
+            this.practiceResultsController = new PracticeResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.practiceResultsController.setScore(score);
+        } else if (mode === 'classic') {
+            this.classicResultsController = new ClassicResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.classicResultsController.setScore(score);
+        } else if (mode === 'cracked') {
+            this.crackedResultsController = new CrackedResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+            this.crackedResultsController.setScore(score);
+        }   
+        
         this.currentScreen = GameScreen.Results;
         this.layer.draw();
     }
