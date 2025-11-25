@@ -254,6 +254,9 @@ export abstract class BaseGameView {
         // Only handle if the game view is visible
         if (this.backgroundLayer.isVisible() === false) return;
 
+        // Check if game is paused (e.g. minigame active)
+        if (this.model.getIsGamePaused()) return;
+
         if (e.key === 'Enter') {
             // Process the guess before adding to history
             const inputText = this.model.getInputText();

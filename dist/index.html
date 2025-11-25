@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>State of Panic</title>
+    <!-- This links to your main TypeScript file -->
+    <style>
+      /* Simple reset to make your game full-screen */
+      body, html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #f0f0f0;
+      }
+      
+      /* Ensure Konva canvas elements are layered properly */
+      #app canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BNfHeZns.js"></script>
+  </head>
+  <body>
+    <!-- Your Konva canvas will likely be added to this container -->
+    <div id="app"></div>
+  </body>
+</html>

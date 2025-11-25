@@ -96,6 +96,8 @@ export abstract class BaseGameModel {
     gameClock: number = 0;
     protected isGamePaused: boolean = false;
     
+    protected isGamePaused: boolean = false;
+
     protected inputText: string = '';
     protected inputHistory: string[] = [];
 
@@ -251,7 +253,12 @@ export abstract class BaseGameModel {
         const initialState = this.states.get(this.initialStateCode);
         
         if (initialState) {
-            initialState.color('pink');
+            // Do not override a guessed state to pink; keep it green if already guessed
+            if (!initialState.getIsGuessed()) {
+                initialState.color('pink');
+            } else {
+                initialState.color('#00ff00');
+            }
             const neighbors = this.getNeighbors(this.initialStateCode);
             neighbors.forEach((neighborCode) => {
                 const neighborState = this.states.get(neighborCode);
