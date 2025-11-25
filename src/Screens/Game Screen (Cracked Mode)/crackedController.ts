@@ -10,7 +10,7 @@ import { BaseGameModel } from "../../common/BaseGameModel";
 import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./crackedView";
 import { GameModel } from "./crackedModel";
-import { applyCrackedModeDeveloperFlags } from "../../sandbox";
+import { applyCrackedModeDeveloperFlags, crackedModePreGuessAllExceptCA } from "../../sandbox";
 
 export class GameController extends BaseGameController {
 	protected declare model: GameModel; // More specific type
@@ -30,6 +30,20 @@ export class GameController extends BaseGameController {
 	protected setupModeSpecificFeatures(): void {
 		// Apply Cracked Mode developer flags AFTER pickRandomState (which resets colors)
 		applyCrackedModeDeveloperFlags(this.model);
+
+		// Ensure the initially selected state starts as "guessed" and remains that way
+		// (skip when the developer flag for pre-guessing all except CA is active)
+		if (!crackedModePreGuessAllExceptCA) {
+			const initialCode = this.model.getCurrentStateCode();
+			if (initialCode) {
+				const initialState = this.model.getState(initialCode);
+				if (initialState && !initialState.getIsGuessed()) {
+					initialState.isGuessed(true).color('#00ff00');
+					this.model.updateGuessableStates();
+					this.refreshView();
+				}
+			}
+		}
 
 		// Start game clock timer (Cracked Mode specific)
 		setInterval(() => {
