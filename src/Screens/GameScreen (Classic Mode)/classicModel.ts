@@ -73,4 +73,9 @@ export class GameModel extends BaseGameModel {
         this.gameClock = 0;
         this.resetAllStates();
     }
+
+    //for getting the mode of game  
+    public getMode(): 'classic' | 'practice' | 'cracked' {
+        return 'classic';
+    }
 }
