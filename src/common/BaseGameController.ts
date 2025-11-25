@@ -2,6 +2,7 @@ import Konva from "konva";
 import type { ScreenSwitcher } from "../types.ts";
 import type { BaseGameModel } from "./BaseGameModel";
 import type { BaseGameView } from "./BaseGameView";
+import { GuessController } from "../Minigames/Guess/guessController";
 
 /**
  * BaseGameController - Shared controller logic for all game modes
@@ -28,9 +29,13 @@ export abstract class BaseGameController {
     protected screenSwitcher: ScreenSwitcher;
     protected view: BaseGameView;
     protected model: BaseGameModel;
+    protected stage: Konva.Stage;
+    
+    private minigameCheckInterval: any;
 
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
         this.screenSwitcher = screenSwitcher;
+        this.stage = stage;
 
         // Factory methods - child classes provide mode-specific implementations
         this.model = this.createModel();
@@ -79,9 +84,52 @@ export abstract class BaseGameController {
             // Refresh view to show any changes from mode-specific setup
             this.refreshView();
 
+            // Setup Minigame Trigger Logic
+            this.setupMinigameTrigger();
+
         } catch (err) {
             console.error('❌ Failed to initialize GameController:', err);
         }
+    }
+
+    private setupMinigameTrigger(): void {
+        // Check every 20 seconds
+        this.minigameCheckInterval = setInterval(() => {
+            if (this.model.getIsGamePaused()) return;
+            if (this.model.getStatesGuessedCount() >= 50) return; // Game over
+
+            // 25% chance to trigger minigame every 20 seconds
+            if (Math.random() < 0.25) {
+                this.triggerMinigame();
+            }
+        }, 20000);
+    }
+
+    private triggerMinigame(): void {
+        console.log('🎲 Random Event! Triggering Guess Mini-game...');
+        this.model.setGamePaused(true);
+
+        new GuessController(this.stage, (score) => {
+            console.log(`Mini-game complete. Score bonus: ${score}`);
+            if (score > 0) {
+                // Add 500 points to model score
+                // Check if model has playerPoints (Classic Mode)
+                if ('playerPoints' in this.model) {
+                     // @ts-ignore
+                    this.model.playerPoints += score;
+                     // @ts-ignore
+                    console.log(`Classic Points updated: ${this.model.playerPoints}`);
+                } else {
+                    this.model.score += score;
+                }
+            }
+            
+            // Resume game
+            this.model.setGamePaused(false);
+            
+            // Refresh view to ensure everything is in sync
+            this.refreshView();
+        });
     }
 
     /** Shared win condition logic - same for all modes */
@@ -90,7 +138,14 @@ export abstract class BaseGameController {
         if (statesGuessed >= 50) {
             console.log('🎉 All 50 states guessed! Transitioning to results screen...');
             // Use the number of states guessed as the score
-            const finalScore = statesGuessed;
+            // In Classic Mode, we might want to use this.model.score instead?
+            // BaseGameController uses statesGuessed by default.
+            // If we want to preserve Classic Mode scoring (which uses multipliers), 
+            // we should probably use this.model.score if it's higher/different.
+            // BaseGameModel has score.
+            
+            const finalScore = Math.max(statesGuessed, this.model.score);
+            
             // Transition to results screen
             this.screenSwitcher.switchToScreen({ type: "result", score: finalScore });
         }
@@ -126,6 +181,9 @@ export abstract class BaseGameController {
     }
 
     destroy(): void {
+        if (this.minigameCheckInterval) {
+            clearInterval(this.minigameCheckInterval);
+        }
         this.view.destroy();
     }
 }
