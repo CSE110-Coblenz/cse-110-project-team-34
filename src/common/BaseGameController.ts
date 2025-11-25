@@ -130,7 +130,8 @@ export abstract class BaseGameController {
             // Use the number of states guessed as the score
             const finalScore = statesGuessed;
             // Transition to results screen
-            this.screenSwitcher.switchToScreen({ type: "result", score: finalScore });
+            const gameMode = this.model.getMode();
+            this.screenSwitcher.switchToScreen({ type: "result", score: finalScore, mode: gameMode });
         }
     }
 
