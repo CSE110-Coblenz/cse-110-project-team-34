@@ -33,6 +33,10 @@ export abstract class BaseGameController {
     
     private minigameCheckInterval: any;
 
+    protected correctSound: HTMLAudioElement | null = null;
+    protected wrongSound: HTMLAudioElement | null = null;
+    
+
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
         this.screenSwitcher = screenSwitcher;
         this.stage = stage;
@@ -66,6 +70,12 @@ export abstract class BaseGameController {
             // Load the US map SVG
             const stateCodes = await this.view.loadMap('/Blank_US_Map_(states_only).svg');
 
+            // Preload Guess Audio
+            this.correctSound = new Audio('/audio/correct.mp3');
+            this.correctSound.load(); 
+            this.wrongSound = new Audio('/audio/wrong.mp3');
+            this.wrongSound.load();
+
             // Initialize model with state codes discovered by the view
             this.model.initializeStates(stateCodes, '#adeaffff');
 
@@ -74,6 +84,9 @@ export abstract class BaseGameController {
 
             // Set up callback for correct answers
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
+
+            // Set up callback for wrong answers
+            this.model.setOnWrongGuessCallback(() => this.whenWrongAnswer());
 
             // Pick a random state on load
             this.view.pickRandomState();
@@ -84,8 +97,12 @@ export abstract class BaseGameController {
             // Refresh view to show any changes from mode-specific setup
             this.refreshView();
 
-            // Setup Minigame Trigger Logic
-            this.setupMinigameTrigger();
+            // Setup minigame popup listener
+            const minigamePopup = this.view.getMinigamePopupElement();
+            minigamePopup.addEventListener('click', () => {
+                this.view.hideMinigamePopup();
+                this.model.setGamePaused(false);
+            });
 
         } catch (err) {
             console.error('❌ Failed to initialize GameController:', err);
@@ -156,11 +173,47 @@ export abstract class BaseGameController {
         // Delegate to child class for mode-specific behavior
         this.onCorrectAnswer();
 
+        // Play sound effect
+        this.playCorrectSound();
+
+        // Play green pulse effect
+        this.view.pulseMapSVGCorrect();
+
         // Refresh view to reflect changes
         this.refreshView();
 
         // Check win condition (same for all modes)
         this.checkWinCondition();
+    }
+
+    // Play audio on correct guess
+    private playCorrectSound() {
+        if (!this.correctSound) return;
+
+        this.correctSound.currentTime = 0; // rewind instantly
+        this.correctSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
+    }
+
+    /** Called when the player answers a state wrongly */
+    private whenWrongAnswer(): void {
+    
+        // Play sound effect
+        this.playWrongSound();
+
+        // Play red pulse effect
+        this.view.pulseMapSVGWrong();
+
+    }
+
+    // Play audio on wrong guess
+    private playWrongSound() {
+        if (!this.wrongSound) return;
+        this.wrongSound.currentTime = 0;
+        this.wrongSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
     }
 
     /** Expose a public method to refresh the view (useful for console debugging) */
