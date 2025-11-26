@@ -94,7 +94,6 @@ export abstract class BaseGameModel {
     score: number = 0;
     timerSeconds: number = 0;
     gameClock: number = 0;
-    
     protected isGamePaused: boolean = false;
 
     protected inputText: string = '';
@@ -149,23 +148,20 @@ export abstract class BaseGameModel {
 
     // --- Game clock methods ---
     incrementGameClock(): void {
-        if (!this.isGamePaused) {
-            this.gameClock += 1000;
-        }
+        if (this.isGamePaused) return;
+        this.gameClock += 1000;
     }
 
     getGameClock(): number {
         return this.gameClock;
     }
 
-    // --- Pause state methods ---
-    getIsGamePaused(): boolean {
-        return this.isGamePaused;
+    setGamePaused(value: boolean): void {
+        this.isGamePaused = value;
     }
 
-    setGamePaused(paused: boolean): void {
-        this.isGamePaused = paused;
-        console.log(`Game paused: ${paused}`);
+    getIsGamePaused(): boolean {
+        return this.isGamePaused;
     }
 
     // --- States guessed counter ---
@@ -206,7 +202,7 @@ export abstract class BaseGameModel {
 
     addToHistory(text: string): void {
         if (text.trim().length > 0) {
-            this.inputHistory.push(text);
+            this.inputHistory.unshift(text);
         }
     }
 
@@ -255,7 +251,12 @@ export abstract class BaseGameModel {
         const initialState = this.states.get(this.initialStateCode);
         
         if (initialState) {
-            initialState.color('pink');
+            // Do not override a guessed state to pink; keep it green if already guessed
+            if (!initialState.getIsGuessed()) {
+                initialState.color('pink');
+            } else {
+                initialState.color('#00ff00');
+            }
             const neighbors = this.getNeighbors(this.initialStateCode);
             neighbors.forEach((neighborCode) => {
                 const neighborState = this.states.get(neighborCode);
@@ -288,6 +289,14 @@ export abstract class BaseGameModel {
     }
 
     /**
+     * Callback function for wrong gues
+     */
+    protected onWrongGuessCallback: (() => void) | null = null;
+    public setOnWrongGuessCallback(cb: () => void): void {
+        this.onWrongGuessCallback = cb;
+    }
+
+    /**
      * Template Method: Processes a guess using shared validation logic,
      * then delegates to mode-specific behavior via onCorrectGuess()
      */
@@ -295,16 +304,19 @@ export abstract class BaseGameModel {
         const guessedStateCode = this.getStateCodeByName(guessedStateName);
         if (!guessedStateCode) {
             console.log(`Unknown state name: ${guessedStateName}`);
+            this.onWrongGuessCallback?.();
             return false;
         }
 
         const guessedState = this.states.get(guessedStateCode);
         if (!guessedState) {
+            this.onWrongGuessCallback?.();
             return false;
         }
 
         if (guessedState.getIsGuessed()) {
             console.log(`${guessedStateName} was already guessed`);
+            this.onWrongGuessCallback?.();
             return false;
         }
 
@@ -312,11 +324,13 @@ export abstract class BaseGameModel {
         
         if (!this.hasGuessedFirstNeighbor && guessedStateCode === this.initialStateCode) {
             console.log(`${guessedStateName} is the initial state and cannot be guessed yet. Guess a neighbor first!`);
+            this.onWrongGuessCallback?.();
             return false;
         }
         
         if (currentColor !== 'red') {
-            console.log(`${guessedStateName} is not currently guessable (must be red)`);
+            console.log(`${guessedStateName} is not currently guessable (must be red)`)
+            this.onWrongGuessCallback?.();
             return false;
         }
 

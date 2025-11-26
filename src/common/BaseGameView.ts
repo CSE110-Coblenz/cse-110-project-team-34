@@ -32,11 +32,16 @@ export abstract class BaseGameView {
     
     protected svgContainer: HTMLDivElement | null = null;
     protected svgPathElements: Map<string, SVGPathElement> = new Map();
+    private minigamePopup!: HTMLDivElement;
     
     protected backgroundImage: Konva.Image | null = null;
     protected overlayBackgroundImage: Konva.Image | null = null;
     protected leftSideImage: Konva.Image | null = null;
     protected belowOverlayImage: Konva.Image | null = null;
+
+    protected historyClipGroup!: Konva.Group;
+    protected historyScrollY = 0; 
+    protected maxVisibleEntries = 20; // max visible entry for the list
     
     protected overlayMapOffsetY: number = 0;
     protected overlayBaseX: number | null = null;
@@ -71,6 +76,11 @@ export abstract class BaseGameView {
         this.createSVGContainer();
         this.initializeTextInput();
         this.initializeHistoryDisplay();
+        this.initializeMinigamePopup();
+
+        // Inject CSS for pulse effect 
+        this.injectPulseCSSCorrect();
+        this.injectPulseCSSWrong();
         
         // Apply initial offset
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
@@ -258,6 +268,7 @@ export abstract class BaseGameView {
                     if (this.onCorrectAnswerCallback) {
                         this.onCorrectAnswerCallback();
                     }
+
                     // Only add to history if correct (as lowercase)
                     this.model.addToHistory(inputText.toLowerCase());
                     this.updateViewFromModel(); // Update colors
@@ -278,6 +289,12 @@ export abstract class BaseGameView {
             const currentText = this.model.getInputText();
             this.model.setInputText(currentText + e.key);
             this.refreshInputText();
+        } else if (e.key === 'ArrowUp' || e.key === ',') {
+            // list scroll up
+            this.scrollHistory(-1);
+        } else if (e.key === 'ArrowDown' || e.key === '.') {
+            // list scroll down
+            this.scrollHistory(1);
         }
     }
 
@@ -285,6 +302,16 @@ export abstract class BaseGameView {
     protected initializeHistoryDisplay(): void {
         this.historyLayer = new Konva.Layer();
         this.stage.add(this.historyLayer);
+
+        // Create a clipping group
+        this.historyClipGroup = new Konva.Group({
+            x: 0,
+            y: 0,
+            clipX: 0,
+            clipY: 0,
+            clipWidth: 200, // width of the text area
+            clipHeight: this.maxVisibleEntries * 24 * 1.2, // fontSize * lineHeight
+        });
 
         this.historyTextDisplay = new Konva.Text({
             x: 0,
@@ -296,11 +323,30 @@ export abstract class BaseGameView {
             align: 'center',
             verticalAlign: 'top',
             width: 200,
-            padding: 10
+            padding: 10,
+            wrap: 'none', // maintain single-line per entry; we'll shrink font size instead of wrapping
         });
 
-        this.historyLayer.add(this.historyTextDisplay);
+        this.historyClipGroup.add(this.historyTextDisplay);
+        this.historyLayer.add(this.historyClipGroup);
     }
+    
+    /** Implementing history scrolling */
+    protected scrollHistory(delta: number): void {
+        const history = this.model.getInputHistory();
+        const lineHeight = this.historyTextDisplay.fontSize() * 1.2;
+        const totalHeight = history.length * lineHeight;
+        const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
+
+        this.historyScrollY += delta * lineHeight;
+
+        if (this.historyScrollY < 0) this.historyScrollY = 0;
+        if (this.historyScrollY > maxScroll) this.historyScrollY = maxScroll;
+
+        this.historyTextDisplay.y(-this.historyScrollY);
+        this.historyLayer.batchDraw();
+    }
+
 
     /** Update input text display position */
     protected updateInputTextDisplay(): void {
@@ -333,11 +379,7 @@ export abstract class BaseGameView {
         const imgY = left.y();
         const imgWidth = left.width() * left.scaleX();
         const imgHeight = left.height() * left.scaleY();
-        
-        // Responsive font size based on window height
-        const fontSize = Math.max(14, window.innerHeight * 0.02);
-        this.historyTextDisplay.fontSize(fontSize);
-        
+
         // Account for rotation: the image is rotated -90 degrees
         // After rotation, the top of the image is on the left side
         // Calculate position to start from the top of the rotated image
@@ -345,14 +387,45 @@ export abstract class BaseGameView {
         const topLeftY = imgY - imgWidth / 2;
 
         // Responsive padding
-        const paddingX = imgHeight * 0.2;
-        const paddingY = imgHeight * 0.1;
+        const paddingX = imgHeight * 0.28;
+        const paddingY = imgHeight * 0.2;
 
-        this.historyTextDisplay.x(topLeftX + paddingX);
-        this.historyTextDisplay.y(topLeftY + paddingY);
-        this.historyTextDisplay.width(imgHeight - 2 * paddingX); // Fit within rotated width
+        this.historyClipGroup.x(topLeftX + paddingX);
+        this.historyClipGroup.y(topLeftY + paddingY);
+        const clipWidth = imgHeight - 2 * paddingX;
+        this.historyClipGroup.clipWidth(clipWidth);
+
+        // Ensure the text width matches the clip width and adjust font to fit longest entry
+        this.historyTextDisplay.width(clipWidth);
+        this.adjustHistoryFontToFit(clipWidth);
 
         this.historyLayer.batchDraw();
+    }
+    
+    /** Ensure history font size fits within provided width without wrapping and stays centered */
+    private adjustHistoryFontToFit(availableWidth: number): void {
+        const padding = this.historyTextDisplay.padding() * 2; // left+right
+        const usableWidth = Math.max(0, availableWidth - padding);
+        const history = this.model.getInputHistory();
+        const baseFontSize = this.historyTextDisplay.fontSize();
+        
+        // Choose a conservative average character width fraction of font size.
+        // This keeps all 50 state names within a single line without wrapping.
+        const AVG_CHAR_WIDTH_FACTOR = 0.6; // approx average width per character in this font
+        const maxChars = history.reduce((m, s) => Math.max(m, s.length), 10); // default guard
+        const sizeByWidth = Math.floor(usableWidth / Math.max(1, maxChars * AVG_CHAR_WIDTH_FACTOR));
+        
+        // Bound the font size to reasonable limits
+        const minSize = 10;
+        const targetSize = Math.max(minSize, Math.min(baseFontSize, sizeByWidth));
+        this.historyTextDisplay.fontSize(targetSize);
+        
+        // Keep clip height consistent with visible rows at current font size
+        const lineHeight = targetSize * 1.2;
+        this.historyClipGroup.clipHeight(this.maxVisibleEntries * lineHeight);
+        
+        // After font size change, refresh layout and scroll bounds
+        this.refreshHistory();
     }
 
     /** Update below-overlay image position */
@@ -420,8 +493,34 @@ export abstract class BaseGameView {
     /** Refresh history from model */
     refreshHistory(): void {
         const history = this.model.getInputHistory();
-        const displayText = history.slice(-10).join('\n');
-        this.historyTextDisplay.text(displayText);
+
+        // Recalculate font size to fit current clip width and longest entry
+        const clipWidth = (this.historyClipGroup as any).clipWidth
+            ? (this.historyClipGroup as any).clipWidth()
+            : 200;
+        const padding = this.historyTextDisplay.padding() * 2;
+        const usableWidth = Math.max(0, clipWidth - padding);
+        const AVG_CHAR_WIDTH_FACTOR = 0.6;
+        const maxChars = history.reduce((m, s) => Math.max(m, s.length), 10);
+        const baseFontSize = this.historyTextDisplay.fontSize();
+        const sizeByWidth = Math.floor(usableWidth / Math.max(1, maxChars * AVG_CHAR_WIDTH_FACTOR));
+        const minSize = 10;
+        const targetSize = Math.max(minSize, Math.min(baseFontSize, sizeByWidth));
+        this.historyTextDisplay.fontSize(targetSize);
+        const lineHeight = targetSize * 1.2;
+        this.historyClipGroup.clipHeight(this.maxVisibleEntries * lineHeight);
+
+        this.historyTextDisplay.text(history.join('\n'));
+
+        const totalHeight = history.length * lineHeight;
+        const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
+
+        // Auto-scroll only if currently at bottom
+        if (this.historyScrollY > maxScroll) {
+            this.historyScrollY = maxScroll;
+        }
+
+        this.historyTextDisplay.y(-this.historyScrollY);
         this.historyLayer.batchDraw();
     }
 
@@ -570,6 +669,111 @@ export abstract class BaseGameView {
     setOnCorrectAnswerCallback(callback: () => void): void {
         this.onCorrectAnswerCallback = callback;
     }
+
+    private initializeMinigamePopup(): void {
+        this.minigamePopup = document.createElement('div');
+        this.minigamePopup.innerText = "this is a minigame pop up";
+        this.minigamePopup.style.position = 'absolute';
+        this.minigamePopup.style.top = '50%';
+        this.minigamePopup.style.left = '50%';
+        this.minigamePopup.style.transform = 'translate(-50%, -50%)';
+        this.minigamePopup.style.backgroundColor = 'black';
+        this.minigamePopup.style.color = 'yellow';
+        this.minigamePopup.style.padding = '20px';
+        this.minigamePopup.style.border = '2px solid white';
+        this.minigamePopup.style.zIndex = '2000';
+        this.minigamePopup.style.display = 'none';
+        document.body.appendChild(this.minigamePopup);
+    }
+
+    showMinigamePopup(): void {
+        this.minigamePopup.style.display = 'block';
+    }
+
+    hideMinigamePopup(): void {
+        this.minigamePopup.style.display = 'none';
+    }
+
+    getMinigamePopupElement(): HTMLDivElement {
+        return this.minigamePopup;
+    }
+
+    // inject pulse for making green pulse around the svg map
+    private injectPulseCSSCorrect(): void {
+    if (document.getElementById("pulse-style-green")) return;
+
+    const style = document.createElement("style");
+    style.id = "pulse-style-green";
+    style.textContent = `
+        @keyframes green-pulse-filter {
+            0% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+            50% { filter: drop-shadow(0 0 20px rgba(3, 170, 3, 0.95)); }
+            100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+        }
+
+        .pulse-once-green {
+            animation: green-pulse-filter 0.4s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+    // inject pulse for making red pulse around the svg map
+
+private injectPulseCSSWrong(): void {
+    if (document.getElementById("pulse-style-red")) return;
+
+    const style = document.createElement("style");
+    style.id = "pulse-style-red";
+    style.textContent = `
+        @keyframes red-pulse-filter {
+            0% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+            50% { filter: drop-shadow(0 0 20px rgba(255,0,0,0.95)); }
+            100% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+        }
+
+        .pulse-once-red {
+            animation: red-pulse-filter 0.4s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+    // pulses green on correct answer
+    pulseMapSVGCorrect(): void {
+        if (!this.svgContainer || !this.svgContainer.firstElementChild) return;
+        const svg = this.svgContainer.firstElementChild as HTMLElement;
+
+        const className = 'pulse-once-green';
+
+        svg.classList.remove(className);
+        void svg.offsetWidth;
+        svg.classList.add(className);
+
+        const handleAnimationEnd = () => {
+            svg.classList.remove(className);
+            svg.removeEventListener('animationend', handleAnimationEnd);
+        };
+        svg.addEventListener('animationend', handleAnimationEnd);
+    }
+
+    pulseMapSVGWrong(): void {
+        if (!this.svgContainer || !this.svgContainer.firstElementChild) return;
+        const svg = this.svgContainer.firstElementChild as HTMLElement;
+
+        const className = 'pulse-once-red';
+
+        svg.classList.remove(className);
+        void svg.offsetWidth;
+        svg.classList.add(className);
+
+        const handleAnimationEnd = () => {
+            svg.classList.remove(className);
+            svg.removeEventListener('animationend', handleAnimationEnd);
+        };
+        svg.addEventListener('animationend', handleAnimationEnd);
+    }   
+
 
     /** Cleanup */
     destroy(): void {
