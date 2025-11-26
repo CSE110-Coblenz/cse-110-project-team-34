@@ -144,10 +144,17 @@ export class MenuView {
 		});
 		startButton.add(startButtonText);
 
+
+		// Create keyboard warning below the start button
+		const keyboardWarning = new Konva.Group({
+			x: (width - 850) / 2,
+			y: height - 345,
+		});
+
 		//Create text that informs the player that a keyboard is required to play
 		const keyBoardWarningRect = new Konva.Rect({
-			x: (width - 850) /2,
-			y: height - 345,
+			x: 0,
+			y: 0,
 			width: 820,
 			height: startButtonHeight,
 			fill: '#651111ff',
@@ -155,21 +162,21 @@ export class MenuView {
 			strokeWidth: 3,
 			cornerRadius: 10,
 		});
-		this.overlayLayer.add(keyBoardWarningRect);
+		keyboardWarning.add(keyBoardWarningRect);
 		
 		const keyBoardWarningText = new Konva.Text({
 			text: 'Attention! This game requires a keyboard to play!',
 			fontSize: 36,
 			fontFamily: 'DungeonFont',
-			x: (width - 850) /2,
-			y: height - 345,
+			x: 0,
+			y: 0,
 			width: 850,
 			height: startButtonHeight,
 			align: 'center',
 			verticalAlign: 'middle',
 			fill: '#ecd3d3ff',
 		});
-		this.overlayLayer.add(keyBoardWarningText);
+		keyboardWarning.add(keyBoardWarningText);
 
 		// Add hover effects
 		startButton.on('mouseenter', () => {
@@ -182,12 +189,14 @@ export class MenuView {
 		});
 		
 		this.overlayLayer.add(startButton);
+		this.overlayLayer.add(keyboardWarning);
 		this.overlayLayer.draw();
 		
 		// Click handler for start button - triggers all animations
 		startButton.on('click', () => {
 			// Remove start button immediately
 			startButton.destroy();
+			keyboardWarning.destroy();
 			this.overlayLayer.draw();
 			
 			// Wait 1 second before starting the animation sequence
