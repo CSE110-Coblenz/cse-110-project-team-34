@@ -33,6 +33,7 @@ export abstract class BaseGameView {
     protected svgContainer: HTMLDivElement | null = null;
     protected svgPathElements: Map<string, SVGPathElement> = new Map();
     private minigamePopup!: HTMLDivElement;
+    private backButtonElement: HTMLButtonElement | null = null;
     
     protected backgroundImage: Konva.Image | null = null;
     protected overlayBackgroundImage: Konva.Image | null = null;
@@ -48,6 +49,7 @@ export abstract class BaseGameView {
     protected overlayBaseY: number | null = null;
     
     protected onCorrectAnswerCallback: (() => void) | null = null;
+    private onBackButtonClick: (() => void) | null = null;
     
     // Text input
     protected inputTextLayer!: Konva.Layer;
@@ -77,6 +79,7 @@ export abstract class BaseGameView {
         this.initializeTextInput();
         this.initializeHistoryDisplay();
         this.initializeMinigamePopup();
+        this.createBackButton();
 
         // Inject CSS for pulse effect 
         this.injectPulseCSSCorrect();
@@ -602,6 +605,7 @@ export abstract class BaseGameView {
         if (this.inputTextLayer) this.inputTextLayer.show();
         if (this.historyLayer) this.historyLayer.show();
         if (this.svgContainer) this.svgContainer.style.visibility = 'visible';
+        if (this.backButtonElement) this.backButtonElement.style.display = 'flex';
     }
 
     /** Hide all layers */
@@ -611,11 +615,16 @@ export abstract class BaseGameView {
         if (this.inputTextLayer) this.inputTextLayer.hide();
         if (this.historyLayer) this.historyLayer.hide();
         if (this.svgContainer) this.svgContainer.style.visibility = 'hidden';
+        if (this.backButtonElement) this.backButtonElement.style.display = 'none';
     }
 
     /** Set callback for correct answer events */
     setOnCorrectAnswerCallback(callback: () => void): void {
         this.onCorrectAnswerCallback = callback;
+    }
+
+    setOnBackButtonClick(callback: () => void): void {
+        this.onBackButtonClick = callback;
     }
 
     private initializeMinigamePopup(): void {
@@ -729,5 +738,51 @@ private injectPulseCSSWrong(): void {
         if (this.svgContainer) {
             document.body.removeChild(this.svgContainer);
         }
+        if (this.backButtonElement) {
+            this.backButtonElement.remove();
+            this.backButtonElement = null;
+        }
+    }
+
+    private createBackButton(): void {
+        // Ensure we don't leave a stale element hanging around
+        if (this.backButtonElement) {
+            this.backButtonElement.remove();
+        }
+
+        this.backButtonElement = document.createElement('button');
+        this.backButtonElement.type = 'button';
+        this.backButtonElement.textContent = '↩';
+        Object.assign(this.backButtonElement.style, {
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            width: '56px',
+            height: '56px',
+            borderRadius: '14px',
+            border: '2px solid #ffffff',
+            background: 'rgba(0,0,0,0.65)',
+            color: '#ffffff',
+            fontSize: '28px',
+            fontFamily: 'Lief, Arial, sans-serif',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: '5000',
+            pointerEvents: 'auto',
+        } as CSSStyleDeclaration);
+
+        this.backButtonElement.addEventListener('mouseenter', () => {
+            if (this.backButtonElement) this.backButtonElement.style.background = 'rgba(0,0,0,0.85)';
+        });
+        this.backButtonElement.addEventListener('mouseleave', () => {
+            if (this.backButtonElement) this.backButtonElement.style.background = 'rgba(0,0,0,0.65)';
+        });
+        this.backButtonElement.addEventListener('click', () => {
+            this.onBackButtonClick?.();
+        });
+
+        document.body.appendChild(this.backButtonElement);
     }
 }

@@ -22,6 +22,7 @@ class Main {
     practiceGameController: PracticeGameController | null = null;
     crackedGameController: CrackedGameController | null = null;
     resultsController: ResultsController | null = null;
+    private lastGameMode: "classic" | "practice" | "cracked" | null = null;
 
     constructor() {
         const stageWidth = window.innerWidth;
@@ -87,11 +88,15 @@ class Main {
         }
         
         this.layer.destroyChildren(); // Clear the layer
-        this.menuController = new MenuController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+        this.menuController = new MenuController(
+            { switchToScreen: (screen) => this.switchToScreen(screen) },
+            this.stage,
+        );
         this.menuController.show();
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
     }
+
 
     showGameScreen(mode: "classic" | "practice" | "cracked") {
         // Hide and destroy other screens
@@ -122,6 +127,8 @@ class Main {
         
         this.layer.destroyChildren();
         
+        this.lastGameMode = mode;
+
         // Create the appropriate game controller based on mode
         if (mode === "practice") {
             this.practiceGameController = new PracticeGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
@@ -161,7 +168,8 @@ class Main {
         }
         
         this.layer.destroyChildren();
-        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+        const restartMode = this.lastGameMode ?? "practice";
+        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage, restartMode);
         this.resultsController.setScore(score);
         this.resultsController.show();
         this.currentScreen = GameScreen.Results;
