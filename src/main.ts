@@ -23,6 +23,7 @@ class Main {
     crackedGameController: CrackedGameController | null = null;
     resultsController: ResultsController | null = null;
     private lastGameMode: "classic" | "practice" | "cracked" | null = null;
+    private menuIntroCompleted = false;
 
     constructor() {
         const stageWidth = window.innerWidth;
@@ -88,15 +89,17 @@ class Main {
         }
         
         this.layer.destroyChildren(); // Clear the layer
+        // Always mark intro as completed after first game
+        const skipIntro = this.menuIntroCompleted || skipMenuScreen !== "off";
         this.menuController = new MenuController(
             { switchToScreen: (screen) => this.switchToScreen(screen) },
             this.stage,
+            { autoCompleteIntro: skipIntro },
         );
         this.menuController.show();
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
     }
-
 
     showGameScreen(mode: "classic" | "practice" | "cracked") {
         // Hide and destroy other screens
@@ -126,6 +129,7 @@ class Main {
         }
         
         this.layer.destroyChildren();
+        this.menuIntroCompleted = true;
         
         this.lastGameMode = mode;
 
