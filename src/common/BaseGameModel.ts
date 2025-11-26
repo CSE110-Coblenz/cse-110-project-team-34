@@ -148,8 +148,9 @@ export abstract class BaseGameModel {
 
     // --- Game clock methods ---
     incrementGameClock(): void {
-        if (this.isGamePaused) return;
-        this.gameClock += 1000;
+        if (!this.isGamePaused) {
+            this.gameClock += 1000;
+        }
     }
 
     getGameClock(): number {

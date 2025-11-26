@@ -643,6 +643,10 @@ export abstract class BaseGameView {
         this.refreshHistory();
     }
 
+    getLayer(): Konva.Layer {
+        return this.layer;
+    }
+
     /** Show all layers */
     show(): void {
         this.backgroundLayer.show();
