@@ -33,6 +33,11 @@ export class GameController extends BaseGameController {
             const initialState = this.model.getState(initialCode);
             if (initialState && !initialState.getIsGuessed()) {
                 initialState.isGuessed(true).color('#00ff00');
+                // Also add the starting state to the guessed history list
+                const initialName = this.model.getStateName(initialCode);
+                if (initialName) {
+                    this.model.addToHistory(initialName.toLowerCase());
+                }
                 this.model.updateGuessableStates();
                 this.refreshView();
             }
