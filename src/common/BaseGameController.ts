@@ -104,9 +104,21 @@ export abstract class BaseGameController {
                 this.model.setGamePaused(false);
             });
 
+            // Start background minigame trigger timer
+            this.setupMinigameTrigger();
+
         } catch (err) {
             console.error('❌ Failed to initialize GameController:', err);
         }
+    }
+
+    /**
+     * Game tick handler invoked by modes that maintain their own 1s interval (e.g., Classic).
+     * Keep it lightweight and avoid triggering minigames here to prevent double scheduling.
+     */
+    protected handleGameTick(): void {
+        if (this.model.getIsGamePaused()) return;
+        this.model.incrementGameClock();
     }
 
     private setupMinigameTrigger(): void {
