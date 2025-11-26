@@ -95,8 +95,6 @@ export abstract class BaseGameModel {
     timerSeconds: number = 0;
     gameClock: number = 0;
     protected isGamePaused: boolean = false;
-    
-    protected isGamePaused: boolean = false;
 
     protected inputText: string = '';
     protected inputHistory: string[] = [];
