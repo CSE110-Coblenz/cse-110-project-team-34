@@ -40,7 +40,7 @@ export const crackedModeShowGameClock = true;
 export const crackedModeShowInputLabel = true;
 export const crackedModeAllowStateClicking = true;
 export const crackedModeShowStatesGuessed = true;
-export const crackedModePreGuessAllExceptCA = false;
+export const crackedModePreGuessAllExceptCA = true;
 
 import type { GameModel as ClassicGameModel } from './Screens/GameScreen (Classic Mode)/classicModel';
 

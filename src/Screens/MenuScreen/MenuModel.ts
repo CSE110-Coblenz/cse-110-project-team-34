@@ -5,51 +5,38 @@ type UnlockState = {
     cracked: boolean;
 };
 
-const MODE_UNLOCK_STORAGE_KEY = 'statepanic-mode-unlocks';
 const DEFAULT_UNLOCK_STATE: UnlockState = { classic: false, cracked: false };
+let sessionUnlockState: UnlockState = { ...DEFAULT_UNLOCK_STATE };
 
-function loadUnlockState(): UnlockState {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return { ...DEFAULT_UNLOCK_STATE };
-    }
-    try {
-        const raw = window.localStorage.getItem(MODE_UNLOCK_STORAGE_KEY);
-        if (!raw) return { ...DEFAULT_UNLOCK_STATE };
-        const parsed = JSON.parse(raw);
-        return {
-            classic: Boolean(parsed.classic),
-            cracked: Boolean(parsed.cracked),
-        };
-    } catch {
-        return { ...DEFAULT_UNLOCK_STATE };
+function getSessionUnlockState(): UnlockState {
+    return { ...sessionUnlockState };
+}
+
+function updateSessionUnlockState(updates: Partial<UnlockState>): void {
+    sessionUnlockState = { ...sessionUnlockState, ...updates };
+}
+
+export function unlockClassicMode(): void {
+    if (!sessionUnlockState.classic) {
+        updateSessionUnlockState({ classic: true });
     }
 }
 
-function saveUnlockState(state: UnlockState): void {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return;
+export function unlockCrackedMode(): void {
+    if (!sessionUnlockState.cracked) {
+        updateSessionUnlockState({ cracked: true });
     }
-    window.localStorage.setItem(MODE_UNLOCK_STORAGE_KEY, JSON.stringify(state));
-}
-
-export function unlockClassicAndCrackedModes(): void {
-    const current = loadUnlockState();
-    if (current.classic && current.cracked) {
-        return;
-    }
-    const updated: UnlockState = { classic: true, cracked: true };
-    saveUnlockState(updated);
 }
 
 /**
  * Tracks which modes are unlocked on the menu screen.
- * Practice is always available; other modes persist once unlocked.
+ * Practice is always available; other modes remain unlocked for this session only.
  */
 export class MenuModel {
     private unlockedModes: Record<GameMode, boolean>;
 
     constructor() {
-        const unlockState = loadUnlockState();
+        const unlockState = getSessionUnlockState();
         this.unlockedModes = {
             practice: true,
             classic: unlockState.classic,
@@ -63,7 +50,7 @@ export class MenuModel {
 
     unlockMode(mode: Exclude<GameMode, "practice">): void {
         this.unlockedModes[mode] = true;
-        this.persist();
+        updateSessionUnlockState({ [mode]: true } as Partial<UnlockState>);
     }
 
     getLockedModes(): { classicLocked: boolean; crackedLocked: boolean } {
@@ -71,13 +58,5 @@ export class MenuModel {
             classicLocked: !this.unlockedModes.classic,
             crackedLocked: !this.unlockedModes.cracked,
         };
-    }
-
-    private persist(): void {
-        const state: UnlockState = {
-            classic: this.unlockedModes.classic,
-            cracked: this.unlockedModes.cracked,
-        };
-        saveUnlockState(state);
     }
 }

@@ -11,6 +11,7 @@ import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./classicView";
 import { GameModel } from "./classicModel";
 import { applyClassicModeDeveloperFlags, classicModePreGuessAllExceptCA } from "../../sandbox";
+import { unlockCrackedMode } from "../MenuScreen/MenuModel";
 
 export class GameController extends BaseGameController {
 	protected declare model: GameModel; // More specific type
@@ -71,5 +72,13 @@ export class GameController extends BaseGameController {
 	protected onCorrectAnswer(): void {
 		// Increase multiplier on correct answer (Classic Mode specific)
 		this.model.increaseMultiplier();
+	}
+
+	/** Unlock Cracked Mode when Classic is completed */
+	protected checkWinCondition(): void {
+		if (this.model.getStatesGuessedCount() >= 50) {
+			unlockCrackedMode();
+		}
+		super.checkWinCondition();
 	}
 }

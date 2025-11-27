@@ -10,6 +10,7 @@ import { BaseGameModel } from "../../common/BaseGameModel";
 import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./practiceView";
 import { GameModel } from "./practiceModel";
+import { unlockClassicMode } from "../MenuScreen/MenuModel";
 
 export class GameController extends BaseGameController {
     protected declare model: GameModel; // More specific type
@@ -33,5 +34,13 @@ export class GameController extends BaseGameController {
     /** Hook: Practice Mode does nothing on correct answer (no scoring) */
     protected onCorrectAnswer(): void {
         // Practice Mode doesn't award points or change multipliers
+    }
+
+    /** Unlock Classic Mode once Practice is fully completed */
+    protected checkWinCondition(): void {
+        if (this.model.getStatesGuessedCount() >= 50) {
+            unlockClassicMode();
+        }
+        super.checkWinCondition();
     }
 }
