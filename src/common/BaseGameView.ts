@@ -774,6 +774,9 @@ private injectPulseCSSWrong(): void {
         svg.addEventListener('animationend', handleAnimationEnd);
     }   
 
+    public getSvgElement(): SVGSVGElement | null {
+        return this.svgContainer?.firstElementChild as SVGSVGElement || null;
+    }
 
     /** Cleanup */
     destroy(): void {
