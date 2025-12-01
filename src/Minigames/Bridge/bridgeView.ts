@@ -2,7 +2,6 @@
 
 import Konva from 'konva';
 import { BaseGameView } from '../../common/BaseGameView';
-
 type GuessCallback = (guess: number) => void;
 
 export class BridgeView {
@@ -11,6 +10,7 @@ export class BridgeView {
     private popupGroup: Konva.Group;
     private stateAImg: HTMLDivElement;
     private stateBImg: HTMLDivElement;
+    private svgPathElements: Map<string, SVGPathElement> = new Map();
     private questionDiv: HTMLDivElement;
     private guessInput: HTMLInputElement;
     private resultText: HTMLDivElement;
@@ -19,17 +19,17 @@ export class BridgeView {
     private minigamePopupContainer: HTMLDivElement;
     private contentContainer: HTMLDivElement;
 
-    private wasMainGameActive: boolean = false;
+    private baseGameView : BaseGameView;
 
-    constructor(stage: Konva.Stage, layer: Konva.Layer) {
+    constructor(stage: Konva.Stage, layer: Konva.Layer, baseGameView: BaseGameView) {
         this.stage = stage;
         this.layer = layer;
+        this.baseGameView = baseGameView;
 
         // === Konva popup group (for visuals like rectangles/text) ===
         this.popupGroup = new Konva.Group({ visible: false });
         this.layer.add(this.popupGroup);
 
-        // === HTML modal container for inputs ===
         // gray overlay behind the popup
         this.minigamePopupContainer = document.createElement('div');
         this.minigamePopupContainer.style.position = 'fixed';
@@ -74,7 +74,6 @@ export class BridgeView {
         this.stateAImg = document.createElement('div');
         this.stateAImg.style.width = '100px';
         this.stateAImg.style.height = '100px';
-        this.stateAImg.style.backgroundColor = '#104F80'; // placeholder color
         this.stateAImg.style.gridColumn = '2 / 3';
         this.stateAImg.style.marginLeft = '50px'
         this.stateAImg.style.gridRow = '2 / 3';
@@ -83,15 +82,13 @@ export class BridgeView {
         this.stateBImg = document.createElement('div');
         this.stateBImg.style.width = '100px';
         this.stateBImg.style.height = '100px';
-        this.stateBImg.style.backgroundColor = '#CBE9FF'; // different placeholder color
         this.stateBImg.style.gridColumn = '4 / 5';
         this.stateBImg.style.gridRow = '2 / 3';
         this.contentContainer.appendChild(this.stateBImg);
 
 
-        // === Input and submit button ===
+        // input box for guesses
         this.guessInput = document.createElement('input');
-        // this.guessInput.type = 'number';
         this.guessInput.style.width = '30px';
         this.guessInput.style.height = '20px';
         this.guessInput.style.marginBottom = '10px';
@@ -130,17 +127,122 @@ export class BridgeView {
         });
     }
 
-    /** Show popup question */
+    // gets path for specific state
+    private parseStatePath(svg: SVGSVGElement, stateFilter?: string): SVGPathElement | null {
+        this.svgPathElements.clear();
+        const STATE_CODE_PATTERN = /^[a-z]{2}$/;
+        const paths = svg.querySelectorAll('path');
+        let stateElement: SVGPathElement | null = null;
+
+        paths.forEach((path) => {
+            const classAttr = path.getAttribute('class') || '';
+            const classTokens = classAttr.split(/\s+/).map((c) => c.trim()).filter(Boolean);
+            const stateCode = classTokens.find((t) => STATE_CODE_PATTERN.test(t));
+
+            if (!stateCode) return; // skip non-state paths
+            if (stateCode === 'dc' || stateCode === 'ak' || stateCode === 'hi') return; // skip DC, AK, HI
+            if (this.svgPathElements.has(stateCode)) return; // skip duplicates
+
+            this.svgPathElements.set(stateCode, path as SVGPathElement);
+
+            if (stateFilter && stateCode === stateFilter) {
+                stateElement = path as SVGPathElement;
+            }
+        });
+
+        if (stateFilter) {
+            return stateElement;
+        }
+
+        return null;
+    }
+
+
+    // set state images in the popup
+    setStateImages(stateA: string, stateB: string) {
+        // Clear the placeholder backgrounds
+        this.stateAImg.innerHTML = '';
+
+        this.stateBImg.innerHTML = '';
+        this.stateAImg.style.backgroundColor = '';
+        this.stateBImg.style.backgroundColor = '';
+
+        // get the svg for specific state from BaseGameView
+        const svg = this.baseGameView.getSvgElement();
+        if (!svg) {
+            console.error("SVG element not found");
+            return;
+        }
+        // 
+        const stateAElement = this.parseStatePath(svg, stateA.toLowerCase());
+        const stateBElement = this.parseStatePath(svg, stateB.toLowerCase());
+
+
+        if (stateAElement) {
+            // Create an SVG container and put the state extracted from the svg inside it
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svgContainer = document.createElementNS(svgNS, "svg");
+            svgContainer.setAttribute("width", "500");
+            svgContainer.setAttribute("height", "500");
+            svgContainer.setAttribute("viewBox", "0 0 100 100");
+            
+            // Clone and style the state
+            const clonedA = stateAElement.cloneNode(true) as SVGPathElement;
+            clonedA.setAttribute("fill", "red");
+            clonedA.setAttribute("stroke", "black");
+            clonedA.setAttribute("stroke-width", "1");
+            clonedA.setAttribute("transform", "translate(50,50) scale(0.8)"); // Center and scale
+            
+            svgContainer.appendChild(clonedA);
+            this.stateAImg.appendChild(svgContainer);
+        } else { // fallback image for state A
+            this.stateAImg.style.backgroundColor = '#104F80';
+            this.stateAImg.style.fontFamily = 'Lief, Arial, sans-serif';
+            this.stateAImg.style.display = 'flex';
+            this.stateAImg.style.justifyContent = 'center';
+            this.stateAImg.style.alignItems = 'center';
+            this.stateAImg.textContent = stateA;
+        }
+
+        if (stateBElement) {
+            // Create an SVG container and put the cloned state inside it
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svgContainer = document.createElementNS(svgNS, "svg");
+            svgContainer.setAttribute("width", "100");
+            svgContainer.setAttribute("height", "100");
+            svgContainer.setAttribute("viewBox", "0 0 100 100");
+            
+            // Clone and style the state
+            const clonedB = stateBElement.cloneNode(true) as SVGPathElement;
+            clonedB.setAttribute("fill", "white");
+            clonedB.setAttribute("stroke", "black");
+            clonedB.setAttribute("stroke-width", "1");
+            clonedB.setAttribute("transform", "translate(50,50) scale(0.8)"); // Center and scale
+            
+            svgContainer.appendChild(clonedB);
+            this.stateBImg.appendChild(svgContainer);
+        } else { // fallback image for state B
+            this.stateBImg.style.backgroundColor = '#CBE9FF';
+            this.stateBImg.style.fontFamily = 'Lief, Arial, sans-serif';
+            this.stateBImg.style.display = 'flex';
+            this.stateBImg.style.justifyContent = 'center';
+            this.stateBImg.style.alignItems = 'center';
+            this.stateBImg.textContent = stateB;
+        }
+    }
+
+    // show question for popup
     showMinigameQuestion(stateA: string, stateB: string) {
         this.questionDiv.textContent = 
             `What's the smallest number of states that connect ${stateA} and ${stateB}?`;
+        this.setStateImages(stateA, stateB);
         this.minigamePopupContainer.style.visibility = 'visible';
         this.guessInput.value = '';
         this.guessInput.focus();
     }
 
 
-    /** Show result and hide popup */
+    // show correct/incorrect result
     showMinigameResult(isCorrect: boolean, answer: number) {
         if (isCorrect === true) {
             this.resultText.style.color = 'lightgreen';
@@ -159,7 +261,7 @@ export class BridgeView {
         }, 3000);
     }
 
-    /** Register callback for guess submission */
+    // register callback for when a guess is submitted
     onGuessSubmitted(callback: GuessCallback) {
         this.onGuess = callback;
     }
