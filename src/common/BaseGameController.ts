@@ -111,6 +111,9 @@ export abstract class BaseGameController {
             // Start background minigame trigger timer
             this.setupMinigameTrigger();
 
+            //uncomment this out
+
+
         } catch (err) {
             console.error('❌ Failed to initialize GameController:', err);
         }
@@ -124,6 +127,9 @@ export abstract class BaseGameController {
         if (this.model.getIsGamePaused()) return;
         this.model.incrementGameClock();
     }
+
+
+    // uncomment this out
 
     private setupMinigameTrigger(): void {
         // Check every 20 seconds
@@ -151,7 +157,7 @@ export abstract class BaseGameController {
         console.log('🎲 Random Event! Triggering Bridge Mini-game...');
         this.model.setGamePaused(true);
 
-        const bridgeView = new BridgeView(this.stage, this.view.getLayer());
+        const bridgeView = new BridgeView(this.stage, this.view.getLayer(), this.view);
         const bridgeModel = new BridgeModel();
         const bridgeController = new BridgeController(bridgeView, bridgeModel);
 
