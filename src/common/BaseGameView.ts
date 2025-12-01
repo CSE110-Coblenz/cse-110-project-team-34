@@ -775,7 +775,11 @@ private injectPulseCSSWrong(): void {
     }   
 
     public getSvgElement(): SVGSVGElement | null {
-        return this.svgContainer?.firstElementChild as SVGSVGElement || null;
+        return this.svgContainer ? this.svgContainer.querySelector('svg') : null;
+    }
+
+    public getStatePath(stateCode: string): SVGPathElement | undefined {
+        return this.svgPathElements.get(stateCode);
     }
 
     /** Cleanup */

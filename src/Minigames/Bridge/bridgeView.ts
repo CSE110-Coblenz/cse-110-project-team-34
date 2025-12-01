@@ -10,7 +10,6 @@ export class BridgeView {
     private popupGroup: Konva.Group;
     private stateAImg: HTMLDivElement;
     private stateBImg: HTMLDivElement;
-    private svgPathElements: Map<string, SVGPathElement> = new Map();
     private questionDiv: HTMLDivElement;
     private guessInput: HTMLInputElement;
     private resultText: HTMLDivElement;
@@ -44,6 +43,7 @@ export class BridgeView {
         this.minigamePopupContainer.style.backgroundColor = 'rgba(0,0,0,0.5)';
         this.minigamePopupContainer.style.zIndex = '10000';
         this.minigamePopupContainer.style.visibility = 'hidden';
+        this.minigamePopupContainer.style.pointerEvents = 'none'; // Don't block input when hidden
         document.body.appendChild(this.minigamePopupContainer);
 
         // container for actual minigame content
@@ -127,116 +127,75 @@ export class BridgeView {
         });
     }
 
-    // gets path for specific state
-    private parseStatePath(svg: SVGSVGElement, stateFilter?: string): SVGPathElement | null {
-        this.svgPathElements.clear();
-        const STATE_CODE_PATTERN = /^[a-z]{2}$/;
-        const paths = svg.querySelectorAll('path');
-        let stateElement: SVGPathElement | null = null;
-
-        paths.forEach((path) => {
-            const classAttr = path.getAttribute('class') || '';
-            const classTokens = classAttr.split(/\s+/).map((c) => c.trim()).filter(Boolean);
-            const stateCode = classTokens.find((t) => STATE_CODE_PATTERN.test(t));
-
-            if (!stateCode) return; // skip non-state paths
-            if (stateCode === 'dc' || stateCode === 'ak' || stateCode === 'hi') return; // skip DC, AK, HI
-            if (this.svgPathElements.has(stateCode)) return; // skip duplicates
-
-            this.svgPathElements.set(stateCode, path as SVGPathElement);
-
-            if (stateFilter && stateCode === stateFilter) {
-                stateElement = path as SVGPathElement;
-            }
-        });
-
-        if (stateFilter) {
-            return stateElement;
-        }
-
-        return null;
-    }
-
-
     // set state images in the popup
-    setStateImages(stateA: string, stateB: string) {
+    setStateImages(stateAName: string, stateBName: string, stateACode: string, stateBCode: string) {
         // Clear the placeholder backgrounds
         this.stateAImg.innerHTML = '';
-
         this.stateBImg.innerHTML = '';
         this.stateAImg.style.backgroundColor = '';
         this.stateBImg.style.backgroundColor = '';
 
-        // get the svg for specific state from BaseGameView
-        const svg = this.baseGameView.getSvgElement();
-        if (!svg) {
-            console.error("SVG element not found");
-            return;
-        }
-        // 
-        const stateAElement = this.parseStatePath(svg, stateA.toLowerCase());
-        const stateBElement = this.parseStatePath(svg, stateB.toLowerCase());
+        // Helper to create SVG for a state
+        const createStateSVG = (stateCode: string, name: string, container: HTMLDivElement, color: string, textColor: string) => {
+            const stateElement = this.baseGameView.getStatePath(stateCode);
+            
+            if (stateElement) {
+                const bbox = stateElement.getBBox();
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svgContainer = document.createElementNS(svgNS, "svg");
+                svgContainer.setAttribute("width", "100");
+                svgContainer.setAttribute("height", "100");
+                
+                // Add padding and set viewBox
+                const padding = 5;
+                svgContainer.setAttribute("viewBox", `${bbox.x - padding} ${bbox.y - padding} ${bbox.width + padding*2} ${bbox.height + padding*2}`);
+                
+                const clonedPath = stateElement.cloneNode(true) as SVGPathElement;
+                clonedPath.setAttribute("fill", color);
+                clonedPath.setAttribute("stroke", "white");
+                clonedPath.setAttribute("stroke-width", "2");
+                clonedPath.removeAttribute("transform"); 
+                
+                svgContainer.appendChild(clonedPath);
+                container.appendChild(svgContainer);
+                
+                // Add Label
+                const label = document.createElement("div");
+                label.textContent = name;
+                label.style.color = "white";
+                label.style.marginTop = "5px";
+                label.style.fontFamily = 'Lief, Arial, sans-serif';
+                label.style.fontSize = '16px';
+                container.appendChild(label);
+                
+                // Style container
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+            } else {
+                // Fallback
+                container.style.backgroundColor = color;
+                container.style.fontFamily = 'Lief, Arial, sans-serif';
+                container.style.display = 'flex';
+                container.style.justifyContent = 'center';
+                container.style.alignItems = 'center';
+                container.style.color = textColor;
+                container.textContent = name;
+            }
+        };
 
-
-        if (stateAElement) {
-            // Create an SVG container and put the state extracted from the svg inside it
-            const svgNS = "http://www.w3.org/2000/svg";
-            const svgContainer = document.createElementNS(svgNS, "svg");
-            svgContainer.setAttribute("width", "500");
-            svgContainer.setAttribute("height", "500");
-            svgContainer.setAttribute("viewBox", "0 0 100 100");
-            
-            // Clone and style the state
-            const clonedA = stateAElement.cloneNode(true) as SVGPathElement;
-            clonedA.setAttribute("fill", "red");
-            clonedA.setAttribute("stroke", "black");
-            clonedA.setAttribute("stroke-width", "1");
-            clonedA.setAttribute("transform", "translate(50,50) scale(0.8)"); // Center and scale
-            
-            svgContainer.appendChild(clonedA);
-            this.stateAImg.appendChild(svgContainer);
-        } else { // fallback image for state A
-            this.stateAImg.style.backgroundColor = '#104F80';
-            this.stateAImg.style.fontFamily = 'Lief, Arial, sans-serif';
-            this.stateAImg.style.display = 'flex';
-            this.stateAImg.style.justifyContent = 'center';
-            this.stateAImg.style.alignItems = 'center';
-            this.stateAImg.textContent = stateA;
-        }
-
-        if (stateBElement) {
-            // Create an SVG container and put the cloned state inside it
-            const svgNS = "http://www.w3.org/2000/svg";
-            const svgContainer = document.createElementNS(svgNS, "svg");
-            svgContainer.setAttribute("width", "100");
-            svgContainer.setAttribute("height", "100");
-            svgContainer.setAttribute("viewBox", "0 0 100 100");
-            
-            // Clone and style the state
-            const clonedB = stateBElement.cloneNode(true) as SVGPathElement;
-            clonedB.setAttribute("fill", "white");
-            clonedB.setAttribute("stroke", "black");
-            clonedB.setAttribute("stroke-width", "1");
-            clonedB.setAttribute("transform", "translate(50,50) scale(0.8)"); // Center and scale
-            
-            svgContainer.appendChild(clonedB);
-            this.stateBImg.appendChild(svgContainer);
-        } else { // fallback image for state B
-            this.stateBImg.style.backgroundColor = '#CBE9FF';
-            this.stateBImg.style.fontFamily = 'Lief, Arial, sans-serif';
-            this.stateBImg.style.display = 'flex';
-            this.stateBImg.style.justifyContent = 'center';
-            this.stateBImg.style.alignItems = 'center';
-            this.stateBImg.textContent = stateB;
-        }
+        createStateSVG(stateACode, stateAName, this.stateAImg, '#104F80', 'white');
+        createStateSVG(stateBCode, stateBName, this.stateBImg, '#CBE9FF', 'black');
     }
 
     // show question for popup
-    showMinigameQuestion(stateA: string, stateB: string) {
+    showMinigameQuestion(stateAName: string, stateBName: string, stateACode: string, stateBCode: string) {
         this.questionDiv.textContent = 
-            `What's the smallest number of states that connect ${stateA} and ${stateB}?`;
-        this.setStateImages(stateA, stateB);
+            `What's the smallest number of states that connect ${stateAName} and ${stateBName}?`;
+        this.setStateImages(stateAName, stateBName, stateACode, stateBCode);
         this.minigamePopupContainer.style.visibility = 'visible';
+        this.minigamePopupContainer.style.pointerEvents = 'all'; // Enable input when showing question
         this.guessInput.value = '';
         this.guessInput.focus();
     }
@@ -253,11 +212,13 @@ export class BridgeView {
         }
         this.resultText.style.visibility = 'visible';
         this.minigamePopupContainer.style.visibility = 'visible';
+        this.minigamePopupContainer.style.pointerEvents = 'all'; // Enable input when visible
 
         // Hide after 3 seconds
         setTimeout(() => {
             this.resultText.style.visibility = 'hidden';
             this.minigamePopupContainer.style.visibility = 'hidden';
+            this.minigamePopupContainer.style.pointerEvents = 'none'; // Disable input blocking when hidden
         }, 3000);
     }
 

@@ -50,7 +50,7 @@ export class BridgeController {
         this.stateBName = stateNames.get(b) || b;
 
         // this.baseModel.pauseGameClock();
-        this.view.showMinigameQuestion(this.stateAName, this.stateBName);
+        this.view.showMinigameQuestion(this.stateAName, this.stateBName, this.stateA, this.stateB);
         // tells model the correct answer
         const answer = findShortestBridgeSize(a, b);
         this.model.setCorrectAnswer(answer);
