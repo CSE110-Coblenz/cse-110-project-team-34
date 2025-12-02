@@ -24,4 +24,4 @@ jobs:
         cache: 'npm'
     - run: npm install
     - run: npm run build --if-present
-    # - run: npm test // set tests up later and then we can uncomment out
+    - run: npm test
