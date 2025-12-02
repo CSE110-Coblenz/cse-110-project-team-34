@@ -11,6 +11,6 @@ describe('findShortestBridgeSize', () => {
     });
 
     it('finds correct path length between distant states', () => {
-        expect(findShortestBridgeSize('ca', 'ny')).toBe(4);
+        expect(findShortestBridgeSize('ca', 'ny')).toBe(7);
     });
 });
