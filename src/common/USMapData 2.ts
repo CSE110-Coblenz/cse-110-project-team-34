@@ -36,7 +36,7 @@ export const stateNames = new Map<string, string>([
  */
 export const stateAdjacencyList = new Map<string, Set<string>>([
   ["al", new Set(["ms", "tn", "ga", "fl"])],
-  ["ak", new Set<string>(["ca", "or", "wa"])],
+  ["ak", new Set<string>(["ca", "or", "wa", "hi"])],
   ["az", new Set(["ca", "nv", "ut", "co", "nm"])],
   ["ar", new Set(["la", "tx", "ok", "mo", "tn", "ms"])],
   ["ca", new Set(["or", "nv", "az", "ak", "hi"])],
@@ -45,7 +45,7 @@ export const stateAdjacencyList = new Map<string, Set<string>>([
   ["de", new Set(["md", "pa", "nj"])],
   ["fl", new Set(["al", "ga"])],
   ["ga", new Set(["fl", "al", "tn", "nc", "sc"])],
-  ["hi", new Set<string>(["ca", "or", "wa"])],
+  ["hi", new Set<string>(["ca", "or", "wa", "ak"])],
   ["id", new Set(["mt", "wy", "ut", "nv", "or", "wa"])],
   ["il", new Set(["in", "ky", "mo", "ia", "wi"])],
   ["in", new Set(["mi", "oh", "ky", "il"])],

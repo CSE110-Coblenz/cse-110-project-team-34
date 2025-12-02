@@ -39,6 +39,11 @@ export class GameController extends BaseGameController {
 				const initialState = this.model.getState(initialCode);
 				if (initialState && !initialState.getIsGuessed()) {
 					initialState.isGuessed(true).color('#00ff00');
+					// Also add the starting state to the guessed history list
+					const initialName = this.model.getStateName(initialCode);
+					if (initialName) {
+						this.model.addToHistory(initialName.toLowerCase());
+					}
 					this.model.updateGuessableStates();
 					this.refreshView();
 				}
@@ -46,9 +51,8 @@ export class GameController extends BaseGameController {
 		}
 
 		// Start game clock timer (Cracked Mode specific)
-		setInterval(() => {
-			if (this.model.getIsGamePaused()) return;
-			this.model.incrementGameClock();
+		this.gameClockIntervalId = window.setInterval(() => {
+			this.handleGameTick();
 			this.refreshView();
 		}, 1000); // runs every 1000 ms (1 second)
 	}

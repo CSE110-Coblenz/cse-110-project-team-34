@@ -3,6 +3,9 @@ import type { ScreenSwitcher } from "../types.ts";
 import type { BaseGameModel } from "./BaseGameModel";
 import type { BaseGameView } from "./BaseGameView";
 import { GuessController } from "../Minigames/Guess/guessController";
+import { BridgeController } from "../Minigames/Bridge/bridgeController";
+import { BridgeModel } from "../Minigames/Bridge/bridgeModel";
+import { BridgeView } from "../Minigames/Bridge/bridgeView";
 
 /**
  * BaseGameController - Shared controller logic for all game modes
@@ -32,6 +35,11 @@ export abstract class BaseGameController {
     protected stage: Konva.Stage;
     
     private minigameCheckInterval: any;
+    private bridgeMinigameCheckInterval: any;
+
+    protected correctSound: HTMLAudioElement | null = null;
+    protected wrongSound: HTMLAudioElement | null = null;
+    
 
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
         this.screenSwitcher = screenSwitcher;
@@ -66,6 +74,12 @@ export abstract class BaseGameController {
             // Load the US map SVG
             const stateCodes = await this.view.loadMap('/Blank_US_Map_(states_only).svg');
 
+            // Preload Guess Audio
+            this.correctSound = new Audio('/audio/correct.mp3');
+            this.correctSound.load(); 
+            this.wrongSound = new Audio('/audio/wrong.mp3');
+            this.wrongSound.load();
+
             // Initialize model with state codes discovered by the view
             this.model.initializeStates(stateCodes, '#adeaffff');
 
@@ -74,6 +88,9 @@ export abstract class BaseGameController {
 
             // Set up callback for correct answers
             this.view.setOnCorrectAnswerCallback(() => this.whenCorrectAnswer());
+
+            // Set up callback for wrong answers
+            this.model.setOnWrongGuessCallback(() => this.whenWrongAnswer());
 
             // Pick a random state on load
             this.view.pickRandomState();
@@ -84,7 +101,14 @@ export abstract class BaseGameController {
             // Refresh view to show any changes from mode-specific setup
             this.refreshView();
 
-            // Setup Minigame Trigger Logic
+            // Setup minigame popup listener
+            const minigamePopup = this.view.getMinigamePopupElement();
+            minigamePopup.addEventListener('click', () => {
+                this.view.hideMinigamePopup();
+                this.model.setGamePaused(false);
+            });
+
+            // Start background minigame trigger timer
             this.setupMinigameTrigger();
 
         } catch (err) {
@@ -92,17 +116,75 @@ export abstract class BaseGameController {
         }
     }
 
+    /**
+     * Game tick handler invoked by modes that maintain their own 1s interval (e.g., Classic).
+     * Keep it lightweight and avoid triggering minigames here to prevent double scheduling.
+     */
+    protected handleGameTick(): void {
+        if (this.model.getIsGamePaused()) return;
+        this.model.incrementGameClock();
+    }
+
     private setupMinigameTrigger(): void {
         // Check every 20 seconds
         this.minigameCheckInterval = setInterval(() => {
             if (this.model.getIsGamePaused()) return;
             if (this.model.getStatesGuessedCount() >= 50) return; // Game over
-
+            
             // 25% chance to trigger minigame every 20 seconds
             if (Math.random() < 0.25) {
                 this.triggerMinigame();
             }
         }, 20000);
+
+        // Bridge minigame: every 30 seconds with no randomness
+        this.bridgeMinigameCheckInterval = setInterval(() => {
+            if (this.model.getIsGamePaused()) return;
+            if (this.model.getStatesGuessedCount() >= 50) return;
+
+            // trigger bridge minigame every 30 seconds
+            this.triggerBridgeMinigame();
+        }, 30000);
+    }
+
+    private triggerBridgeMinigame(): void {
+        console.log('🎲 Random Event! Triggering Bridge Mini-game...');
+        this.model.setGamePaused(true);
+
+        const bridgeView = new BridgeView(this.stage, this.view.getLayer(), this.view);
+        const bridgeModel = new BridgeModel();
+        const bridgeController = new BridgeController(bridgeView, bridgeModel);
+
+        // Use the existing callback system
+        bridgeView.onGuessSubmitted((guess: number) => {
+            const result = bridgeModel.checkGuess(guess);
+            
+            // Show result in the view
+            bridgeView.showMinigameResult(result.isCorrect, result.correctAnswer);
+            
+            // Calculate bonus points
+            const bonusPoints = result.isCorrect ? 100 : 0;
+            
+            // Add points to main game
+            if (bonusPoints > 0) {
+                if ('playerPoints' in this.model) {
+                    // @ts-ignore
+                    this.model.playerPoints += bonusPoints;
+                    // @ts-ignore
+                    console.log(`Classic Points updated: ${this.model.playerPoints}`);
+                } else {
+                    this.model.score += bonusPoints;
+                }
+            }
+            
+            // Resume game after a delay (so user can see the result)
+            setTimeout(() => {
+                this.model.setGamePaused(false);
+                this.refreshView();
+            }, 3000); // Match the 3-second delay from showMinigameResult
+        });
+
+        bridgeController.startMinigame();
     }
 
     private triggerMinigame(): void {
@@ -156,11 +238,47 @@ export abstract class BaseGameController {
         // Delegate to child class for mode-specific behavior
         this.onCorrectAnswer();
 
+        // Play sound effect
+        this.playCorrectSound();
+
+        // Play green pulse effect
+        this.view.pulseMapSVGCorrect();
+
         // Refresh view to reflect changes
         this.refreshView();
 
         // Check win condition (same for all modes)
         this.checkWinCondition();
+    }
+
+    // Play audio on correct guess
+    private playCorrectSound() {
+        if (!this.correctSound) return;
+
+        this.correctSound.currentTime = 0; // rewind instantly
+        this.correctSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
+    }
+
+    /** Called when the player answers a state wrongly */
+    private whenWrongAnswer(): void {
+    
+        // Play sound effect
+        this.playWrongSound();
+
+        // Play red pulse effect
+        this.view.pulseMapSVGWrong();
+
+    }
+
+    // Play audio on wrong guess
+    private playWrongSound() {
+        if (!this.wrongSound) return;
+        this.wrongSound.currentTime = 0;
+        this.wrongSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
     }
 
     /** Expose a public method to refresh the view (useful for console debugging) */
@@ -183,6 +301,8 @@ export abstract class BaseGameController {
     destroy(): void {
         if (this.minigameCheckInterval) {
             clearInterval(this.minigameCheckInterval);
+        } if (this.bridgeMinigameCheckInterval) {
+            clearInterval(this.bridgeMinigameCheckInterval);
         }
         this.view.destroy();
     }

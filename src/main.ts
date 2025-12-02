@@ -133,9 +133,6 @@ class Main {
             this.crackedGameController = new CrackedGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
             this.crackedGameController.show();
         }
-        
-        this.currentScreen = GameScreen.Game;
-        this.layer.draw();
     }
 
     showResultsScreen(score: number) {
