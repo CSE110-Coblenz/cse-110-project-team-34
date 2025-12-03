@@ -18,20 +18,11 @@ export class GameView extends BaseGameView {
 
     /** Show view */
     show(): void {
-        this.backgroundLayer.show();
-        this.layer.show();
-        if (this.inputTextLayer) this.inputTextLayer.show();
-        if (this.historyLayer) this.historyLayer.show();
-        if (this.svgContainer) this.svgContainer.style.visibility = 'visible';
+        super.show(); // Use base logic so shared UI (like the back button) toggles correctly
     }
 
     /** Hide view */
     hide(): void {
-        this.backgroundLayer.hide();
-        this.layer.hide();
-        if (this.inputTextLayer) this.inputTextLayer.hide();
-        if (this.historyLayer) this.historyLayer.hide();
-        if (this.svgContainer) this.svgContainer.style.visibility = 'hidden';
+        super.hide();
     }
 }
-

@@ -48,6 +48,7 @@ export abstract class BaseGameController {
         // Factory methods - child classes provide mode-specific implementations
         this.model = this.createModel();
         this.view = this.createView(stage, this.model);
+        this.view.setOnBackButtonClick(() => this.handleBackButton());
 
         // Shared initialization flow
         this.initializeView();
@@ -312,5 +313,9 @@ export abstract class BaseGameController {
             clearInterval(this.bridgeMinigameCheckInterval);
         }
         this.view.destroy();
+    }
+
+    private handleBackButton(): void {
+        this.screenSwitcher.switchToScreen({ type: "menu" });
     }
 }
