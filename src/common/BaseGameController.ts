@@ -148,9 +148,9 @@ export abstract class BaseGameController {
             if (this.model.getIsGamePaused()) return;
             if (this.model.getStatesGuessedCount() >= 50) return;
 
-            // trigger bridge minigame every 30 seconds
+            // trigger bridge minigame every 50 seconds
             this.triggerBridgeMinigame();
-        }, 30000);
+        }, 50000);
     }
 
     private triggerBridgeMinigame(): void {
