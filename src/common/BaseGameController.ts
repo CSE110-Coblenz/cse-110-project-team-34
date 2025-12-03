@@ -165,7 +165,8 @@ export abstract class BaseGameController {
             const finalScore = Math.max(statesGuessed, this.model.score);
             
             // Transition to results screen
-            this.screenSwitcher.switchToScreen({ type: "result", score: finalScore });
+            const gameMode = this.model.getMode();
+            this.screenSwitcher.switchToScreen({ type: "result", score: finalScore, mode: gameMode });
         }
     }
 

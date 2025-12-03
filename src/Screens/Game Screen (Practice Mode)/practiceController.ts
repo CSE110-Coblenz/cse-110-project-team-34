@@ -28,6 +28,21 @@ export class GameController extends BaseGameController {
 
     /** Hook: Practice Mode setup */
     protected setupModeSpecificFeatures(): void {
+        // Ensure the initially selected state starts as "guessed" and remains that way
+        const initialCode = this.model.getCurrentStateCode();
+        if (initialCode) {
+            const initialState = this.model.getState(initialCode);
+            if (initialState && !initialState.getIsGuessed()) {
+                initialState.isGuessed(true).color('#00ff00');
+                // Also add the starting state to the guessed history list
+                const initialName = this.model.getStateName(initialCode);
+                if (initialName) {
+                    this.model.addToHistory(initialName.toLowerCase());
+                }
+                this.model.updateGuessableStates();
+                this.refreshView();
+            }
+        }
         console.log('✓ Practice Mode controller initialized');
     }
 

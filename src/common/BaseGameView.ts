@@ -327,6 +327,7 @@ export abstract class BaseGameView {
             verticalAlign: 'top',
             width: 200,
             padding: 10,
+            wrap: 'none', // maintain single-line per entry; we'll shrink font size instead of wrapping
         });
 
         this.historyClipGroup.add(this.historyTextDisplay);
@@ -394,9 +395,40 @@ export abstract class BaseGameView {
 
         this.historyClipGroup.x(topLeftX + paddingX);
         this.historyClipGroup.y(topLeftY + paddingY);
-        this.historyClipGroup.clipWidth(imgHeight - 2 * paddingX);
+        const clipWidth = imgHeight - 2 * paddingX;
+        this.historyClipGroup.clipWidth(clipWidth);
+
+        // Ensure the text width matches the clip width and adjust font to fit longest entry
+        this.historyTextDisplay.width(clipWidth);
+        this.adjustHistoryFontToFit(clipWidth);
 
         this.historyLayer.batchDraw();
+    }
+    
+    /** Ensure history font size fits within provided width without wrapping and stays centered */
+    private adjustHistoryFontToFit(availableWidth: number): void {
+        const padding = this.historyTextDisplay.padding() * 2; // left+right
+        const usableWidth = Math.max(0, availableWidth - padding);
+        const history = this.model.getInputHistory();
+        const baseFontSize = this.historyTextDisplay.fontSize();
+        
+        // Choose a conservative average character width fraction of font size.
+        // This keeps all 50 state names within a single line without wrapping.
+        const AVG_CHAR_WIDTH_FACTOR = 0.6; // approx average width per character in this font
+        const maxChars = history.reduce((m, s) => Math.max(m, s.length), 10); // default guard
+        const sizeByWidth = Math.floor(usableWidth / Math.max(1, maxChars * AVG_CHAR_WIDTH_FACTOR));
+        
+        // Bound the font size to reasonable limits
+        const minSize = 10;
+        const targetSize = Math.max(minSize, Math.min(baseFontSize, sizeByWidth));
+        this.historyTextDisplay.fontSize(targetSize);
+        
+        // Keep clip height consistent with visible rows at current font size
+        const lineHeight = targetSize * 1.2;
+        this.historyClipGroup.clipHeight(this.maxVisibleEntries * lineHeight);
+        
+        // After font size change, refresh layout and scroll bounds
+        this.refreshHistory();
     }
 
     /** Update below-overlay image position */
@@ -464,9 +496,25 @@ export abstract class BaseGameView {
     /** Refresh history from model */
     refreshHistory(): void {
         const history = this.model.getInputHistory();
+
+        // Recalculate font size to fit current clip width and longest entry
+        const clipWidth = (this.historyClipGroup as any).clipWidth
+            ? (this.historyClipGroup as any).clipWidth()
+            : 200;
+        const padding = this.historyTextDisplay.padding() * 2;
+        const usableWidth = Math.max(0, clipWidth - padding);
+        const AVG_CHAR_WIDTH_FACTOR = 0.6;
+        const maxChars = history.reduce((m, s) => Math.max(m, s.length), 10);
+        const baseFontSize = this.historyTextDisplay.fontSize();
+        const sizeByWidth = Math.floor(usableWidth / Math.max(1, maxChars * AVG_CHAR_WIDTH_FACTOR));
+        const minSize = 10;
+        const targetSize = Math.max(minSize, Math.min(baseFontSize, sizeByWidth));
+        this.historyTextDisplay.fontSize(targetSize);
+        const lineHeight = targetSize * 1.2;
+        this.historyClipGroup.clipHeight(this.maxVisibleEntries * lineHeight);
+
         this.historyTextDisplay.text(history.join('\n'));
 
-        const lineHeight = this.historyTextDisplay.fontSize() * 1.2;
         const totalHeight = history.length * lineHeight;
         const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
 

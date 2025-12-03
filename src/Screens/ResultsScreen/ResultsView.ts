@@ -178,6 +178,46 @@ export class ResultsView {
             this.onBackButtonClick?.();
         });
         this.cardGroup.add(this.buttonGroup);
+        const background = new Konva.Rect({
+            x: 0,
+            y: 0,
+            width: this.stage.width(),
+            height: this.stage.height(),
+            fill: "#003366", //dark blue background
+        });
+        this.layer.add(background);
+
+        // Konva.Image.fromURL("/Humble Gift - Paper UI System v1.1/results_background_image.png", (backgroundImage) => {
+        Konva.Image.fromURL("/Humble Gift - Paper UI System v1.1/Sprites/Book Desk/desk image.jpg", (backgroundImage) => {
+            backgroundImage.x(0);
+            backgroundImage.y(0);
+            backgroundImage.width(this.stage.width());
+            backgroundImage.height(this.stage.height());
+            this.layer.add(backgroundImage);
+            this.layer.draw();
+
+            Konva.Image.fromURL("/Humble Gift - Paper UI System v1.1/certificate_image.png", (certificate) => {
+            certificate.x(this.stage.width() / 2 );  // Centered horizontally
+            certificate.y(this.stage.height() / 2 ); // Centered vertically
+            certificate.width(750);
+            certificate.height(850); 
+            certificate.offsetX(certificate.width() / 2); // Offset to center
+            certificate.offsetY(certificate.height() / 2); // Offset to center
+            this.layer.add(certificate);
+            this.layer.draw();
+
+                const completionText = new Konva.Text({
+                    x: this.stage.width() / 2 - 300,
+                    y: this.stage.height() / 2 - 100,
+                    text: 'Congratulations for achieving an impressive \nscore in classic mode!\n\nCan you beat your own record?',
+                    fontSize: 32,
+                    fontFamily: "Times New Roman",
+                    fill: "black",
+                });
+                    this.layer.add(completionText);
+                    this.layer.draw();
+            });
+        });
 
         this.createBackButton();
         this.resizeHandler = () => this.updateLayout();

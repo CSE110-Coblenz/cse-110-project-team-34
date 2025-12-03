@@ -33,7 +33,7 @@ export const classicModeShowGameClock = true;
 export const classicModeShowInputLabel = true;
 export const classicModeAllowStateClicking = false;
 export const classicModeShowStatesGuessed = true;
-export const classicModePreGuessAllExceptCA = false;
+export const classicModePreGuessAllExceptCA = true;
 
 // Cracked Mode Developer Flags
 export const crackedModeShowGameClock = true;
