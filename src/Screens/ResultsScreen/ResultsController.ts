@@ -10,6 +10,9 @@ export class ResultsController {
 	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
 		this.screenSwitcher = screenSwitcher;
 		this.view = new ResultsView(stage);
+		this.view.setOnBackButtonClick(() => {
+			this.screenSwitcher.switchToScreen({ type: "menu" });
+		});
 	}
 
 	getView() {

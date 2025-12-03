@@ -2,6 +2,13 @@ import Konva from 'konva';
 import { ensureLiefFontLoaded, ensureKa1FontLoaded, ensureDungeonFontLoaded, waitForFontsReady } from '../../utils/FontLoader';
 import { createPixelImage } from '../../utils/KonvaHelpers';
 
+interface MenuViewOptions {
+	classicModeLocked?: boolean;
+	crackedModeLocked?: boolean;
+}
+
+let hasMenuIntroPlayed = false;
+
 // Export the class so main.ts (or ViewManager.ts) can import it
 export class MenuView {
 	// This group will hold all the visual elements of the menu
@@ -40,6 +47,22 @@ export class MenuView {
 	private muteButtonIcon: Konva.Image | null = null; // Icon within mute button
 	private muteButtonText: Konva.Text | null = null; // Text within mute button
 	private isMuted: boolean = false; // Track mute state
+	private classicModeLocked: boolean;
+	private crackedModeLocked: boolean;
+	private classicLockOverlay: Konva.Group | null = null;
+	private crackedLockOverlay: Konva.Group | null = null;
+	private classicButtonRect: Konva.Rect | null = null;
+	private crackedButtonRect: Konva.Rect | null = null;
+	private blackScreen: Konva.Rect | null = null;
+	private startButton: Konva.Group | null = null;
+	private stateTween: Konva.Tween | null = null;
+	private ofTween: Konva.Tween | null = null;
+	private panicTween: Konva.Tween | null = null;
+	private titleStateTarget: { x: number; y: number } | null = null;
+	private titleOfTarget: { x: number; y: number } | null = null;
+	private titlePanicTarget: { x: number; y: number } | null = null;
+	private triggerStartSequenceFn: (() => void) | null = null;
+	private introHasFinished = false;
 
 	// Exposed button groups so the Controller can attach handlers
 	public practiceButton: Konva.Group;
@@ -47,8 +70,16 @@ export class MenuView {
 	public crackedButton: Konva.Group;
 
 	// The constructor receives the main stage from the App/ViewManager
-	constructor(stage: Konva.Stage) {
+	constructor(stage: Konva.Stage, options: MenuViewOptions = {}) {
 		this.stage = stage;
+		const {
+			classicModeLocked = false,
+			crackedModeLocked = false,
+		} = options;
+		this.classicModeLocked = classicModeLocked;
+		this.crackedModeLocked = crackedModeLocked;
+		hasMenuIntroPlayed = false;
+		this.introHasFinished = false;
 
 		// Preload ching sound audio
 		this.chingSound = new Audio('/audio/ching sound.mp3');
@@ -108,6 +139,7 @@ export class MenuView {
 			fill: 'black',
 			opacity: 1,
 		});
+		this.blackScreen = blackScreen;
 		this.overlayLayer.add(blackScreen);
 		
 		// Create "START" button on black screen
@@ -117,6 +149,7 @@ export class MenuView {
 			x: (width - startButtonWidth) / 2,
 			y: (height - startButtonHeight) / 2,
 		});
+		this.startButton = startButton;
 		
 		const startButtonRect = new Konva.Rect({
 			x: 0,
@@ -258,7 +291,7 @@ export class MenuView {
 			y: buttonHeight + buttonSpacing,
 		});
 
-		const classicRect = new Konva.Rect({
+		this.classicButtonRect = new Konva.Rect({
 			x: 0,
 			y: 0,
 			width: buttonWidth,
@@ -268,7 +301,7 @@ export class MenuView {
 			strokeWidth: 2,
 			cornerRadius: 8,
 		});
-		this.classicButton.add(classicRect);
+		this.classicButton.add(this.classicButtonRect);
 
 		const classicText = new Konva.Text({
 			text: 'CLASSIC',
@@ -284,13 +317,20 @@ export class MenuView {
 		});
 		this.classicButton.add(classicText);
 
+		this.classicLockOverlay = this.createLockOverlay(buttonWidth, buttonHeight);
+		this.classicButton.add(this.classicLockOverlay);
+
 		// Hover effect for classic button
 		this.classicButton.on('mouseenter', () => {
-			classicRect.fill('#c0c0c0');
+			if (this.classicModeLocked) {
+				document.body.style.cursor = 'not-allowed';
+				return;
+			}
+			this.classicButtonRect?.fill('#c0c0c0');
 			document.body.style.cursor = 'pointer';
 		});
 		this.classicButton.on('mouseleave', () => {
-			classicRect.fill('#e0e0e0');
+			this.classicButtonRect?.fill('#e0e0e0');
 			document.body.style.cursor = 'default';
 		});
 
@@ -300,7 +340,7 @@ export class MenuView {
 			y: (buttonHeight + buttonSpacing) * 2,
 		});
 
-		const crackedRect = new Konva.Rect({
+		this.crackedButtonRect = new Konva.Rect({
 			x: 0,
 			y: 0,
 			width: buttonWidth,
@@ -310,7 +350,7 @@ export class MenuView {
 			strokeWidth: 2,
 			cornerRadius: 8,
 		});
-		this.crackedButton.add(crackedRect);
+		this.crackedButton.add(this.crackedButtonRect);
 
 		const crackedText = new Konva.Text({
 			text: 'CRACKED',
@@ -326,13 +366,20 @@ export class MenuView {
 		});
 		this.crackedButton.add(crackedText);
 
+		this.crackedLockOverlay = this.createLockOverlay(buttonWidth, buttonHeight);
+		this.crackedButton.add(this.crackedLockOverlay);
+
 		// Hover effect for cracked button
 		this.crackedButton.on('mouseenter', () => {
-			crackedRect.fill('#b0b0b0');
+			if (this.crackedModeLocked) {
+				document.body.style.cursor = 'not-allowed';
+				return;
+			}
+			this.crackedButtonRect?.fill('#b0b0b0');
 			document.body.style.cursor = 'pointer';
 		});
 		this.crackedButton.on('mouseleave', () => {
-			crackedRect.fill('#d0d0d0');
+			this.crackedButtonRect?.fill('#d0d0d0');
 			document.body.style.cursor = 'default';
 		});
 		
@@ -505,6 +552,38 @@ export class MenuView {
 			easing: Konva.Easings.EaseOut,
 		});
 		
+			this.stateTween = stateTween;
+			this.ofTween = ofTween;
+			this.panicTween = panicTween;
+			this.titleStateTarget = { x: stateXPosition, y: titleY + stateText.height() / 2 };
+			this.titleOfTarget = { x: ofXPosition, y: titleY + ofText.height() / 2 };
+			this.titlePanicTarget = { x: panicXPosition, y: titleY + panicText.height() / 2 };
+
+			this.triggerStartSequenceFn = () => {
+				if (this.introHasFinished) return;
+				this.introHasFinished = true;
+
+				if (this.startButton) {
+					this.startButton.destroy();
+					this.startButton = null;
+					this.overlayLayer.draw();
+				}
+
+				if (hasMenuIntroPlayed) {
+					this.completeIntroInstantly();
+					return;
+				}
+
+				hasMenuIntroPlayed = true;
+				
+				setTimeout(() => {
+					this.startAnimationSequence();
+				}, 500);
+			};
+
+			// Click handler for start button - triggers all animations
+			startButton.on('click', () => this.triggerStartSequenceFn?.());
+
 		// Start hidden by default, the App/ViewManager will show it
 		this.hide();
 	}
@@ -512,17 +591,19 @@ export class MenuView {
 	/**
 	 * Start the full animation sequence (triggered by start button click)
 	 */
-	private startAnimationSequence(
-		blackScreen: Konva.Rect,
-		width: number,
-		height: number,
-		stateText: Konva.Text,
-		ofText: Konva.Text,
-		panicText: Konva.Text,
-		stateTween: Konva.Tween,
-		ofTween: Konva.Tween,
-		panicTween: Konva.Tween
-	): void {
+	private startAnimationSequence(): void {
+		const blackScreen = this.blackScreen;
+		const stateText = this.titleStateText;
+		const ofText = this.titleOfText;
+		const panicText = this.titlePanicText;
+		const stateTween = this.stateTween;
+		const ofTween = this.ofTween;
+		const panicTween = this.panicTween;
+		if (!blackScreen || !stateText || !ofText || !panicText || !stateTween || !ofTween || !panicTween) {
+			return;
+		}
+		const width = this.stage.width();
+		const height = this.stage.height();
 		// Play animations in sequence with 1.0s delay between each
 		waitForFontsReady().then(() => {
 			// Play intro voice when animation starts
@@ -601,7 +682,78 @@ export class MenuView {
 			}, 2900); // Start white fade 0.8s after PANIC animation finishes
 		});
 	}
-	
+
+	/**
+	 * Instantly put the menu into its "post-intro" state for subsequent visits.
+	 */
+	private completeIntroInstantly(): void {
+		const blackScreen = this.blackScreen;
+		const stateText = this.titleStateText;
+		const ofText = this.titleOfText;
+		const panicText = this.titlePanicText;
+		const stateTarget = this.titleStateTarget;
+		const ofTarget = this.titleOfTarget;
+		const panicTarget = this.titlePanicTarget;
+		if (!blackScreen || !stateText || !ofText || !panicText || !stateTarget || !ofTarget || !panicTarget) {
+			return;
+		}
+		const snapText = (node: Konva.Text, x: number, y: number) => {
+			node.x(x);
+			node.y(y);
+			node.opacity(1);
+			node.scaleX(1);
+			node.scaleY(1);
+		};
+
+		let shouldRedrawOverlay = false;
+		if (!blackScreen.destroyed()) {
+			blackScreen.destroy();
+			this.blackScreen = null;
+			shouldRedrawOverlay = true;
+		}
+
+		if (this.startButton && !this.startButton.destroyed()) {
+			this.startButton.destroy();
+			this.startButton = null;
+			shouldRedrawOverlay = true;
+		}
+		if (shouldRedrawOverlay) {
+			this.overlayLayer.draw();
+		}
+
+		snapText(stateText, stateTarget.x, stateTarget.y);
+		snapText(ofText, ofTarget.x, ofTarget.y);
+		snapText(panicText, panicTarget.x, panicTarget.y);
+		this.overlayLayer.batchDraw();
+
+		// Ensure the vignette is in its final state
+		if (this.vignette) {
+			const centerX = this.stage.width() / 2;
+			const centerY = this.stage.height() / 2;
+			const finalRadius = Math.sqrt(centerX * centerX + centerY * centerY) * 0.7;
+			this.vignette.fillRadialGradientEndRadius(finalRadius);
+			this.vignette.opacity(1);
+			this.backgroundLayer.batchDraw();
+		}
+
+		// Resume the background music immediately (respect mute toggle).
+		this.backgroundMusic.currentTime = 0;
+		this.backgroundMusic.volume = this.isMuted ? 0 : 1;
+		if (this.isMuted) {
+			this.backgroundMusic.pause();
+		} else {
+			this.backgroundMusic.play().catch(() => {});
+		}
+
+		// Kick off visual flourishes (title flash, book bounce, visualizer)
+		this.startTitleFlash(500);
+		this.startBookBounce();
+		this.ensureAudioAnalyzer();
+		this.setupVisualizerBars();
+		if (this.visualizerGroup) this.visualizerGroup.show();
+		this.startVisualizer();
+	}
+
 	/**
 	 * Animate the vignette from large (no black visible) to normal size
 	 */
@@ -812,6 +964,97 @@ export class MenuView {
 		}
 	}
 
+	private createLockOverlay(width: number, height: number): Konva.Group {
+		const overlay = new Konva.Group({
+			listening: false,
+			visible: false,
+			opacity: 0.85,
+		});
+
+		const mask = new Konva.Rect({
+			x: 0,
+			y: 0,
+			width,
+			height,
+			cornerRadius: 8,
+			fill: 'rgba(0,0,0,0.65)',
+		});
+
+		const lockText = new Konva.Text({
+			text: 'LOCKED',
+			fontSize: 32,
+			fontFamily: 'DungeonFont',
+			fill: '#ffffff',
+			width,
+			height,
+			align: 'center',
+			verticalAlign: 'middle',
+		});
+
+		overlay.add(mask, lockText);
+		return overlay;
+	}
+
+	private updateClassicModeLockVisuals(): void {
+		if (!this.classicLockOverlay || !this.classicButtonRect) {
+			return;
+		}
+		this.classicLockOverlay.visible(this.classicModeLocked);
+		this.classicButtonRect.opacity(this.classicModeLocked ? 0.85 : 1);
+		this.contentLayer.batchDraw();
+	}
+
+	private updateCrackedModeLockVisuals(): void {
+		if (!this.crackedLockOverlay || !this.crackedButtonRect) {
+			return;
+		}
+		this.crackedLockOverlay.visible(this.crackedModeLocked);
+		this.crackedButtonRect.opacity(this.crackedModeLocked ? 0.85 : 1);
+		this.contentLayer.batchDraw();
+	}
+
+	private animateLockOverlayFlash(overlay: Konva.Group | null): void {
+		if (!overlay || !overlay.isVisible()) {
+			return;
+		}
+		overlay.to({
+			opacity: 1,
+			duration: 0.12,
+			onFinish: () => {
+				overlay.to({
+					opacity: 0.85,
+					duration: 0.2,
+				});
+			},
+		});
+	}
+
+	public isClassicModeLocked(): boolean {
+		return this.classicModeLocked;
+	}
+
+	public isCrackedModeLocked(): boolean {
+		return this.crackedModeLocked;
+	}
+
+	public setClassicModeLocked(locked: boolean): void {
+		this.classicModeLocked = locked;
+		this.updateClassicModeLockVisuals();
+	}
+
+	public setCrackedModeLocked(locked: boolean): void {
+		this.crackedModeLocked = locked;
+		this.updateCrackedModeLockVisuals();
+	}
+
+	public playLockedFeedback(mode: "classic" | "cracked"): void {
+		if (mode === 'classic') {
+			this.animateLockOverlayFlash(this.classicLockOverlay);
+		} else {
+			this.animateLockOverlayFlash(this.crackedLockOverlay);
+		}
+	}
+
 	/**
 	 * Load the background images
 	 */
@@ -959,6 +1202,7 @@ export class MenuView {
 
 	// Method for the App/ViewManager to show this screen
 	show() {
+		this.ensureIntroComplete();
 		this.backgroundLayer.show();
 		this.contentLayer.show();
 		this.overlayLayer.show();
@@ -995,6 +1239,10 @@ export class MenuView {
 	public stopMusic() {
 		this.backgroundMusic.pause();
 		this.backgroundMusic.currentTime = 0;
+	}
+
+	public ensureIntroComplete(): void {
+		// Intro runs via the START button; nothing to enforce here.
 	}
 	
 	// Method to toggle mute/unmute

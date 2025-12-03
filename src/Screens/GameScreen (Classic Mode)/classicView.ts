@@ -317,14 +317,10 @@ export class GameView extends BaseGameView {
 
     /** Show view */
     show(): void {
-        this.backgroundLayer.show();
-        this.layer.show();
-        if (this.inputTextLayer) this.inputTextLayer.show();
-        if (this.historyLayer) this.historyLayer.show();
+        super.show();
         if (this.multiplierLayer) this.multiplierLayer.show();
         if (this.playerPointsLayer) this.playerPointsLayer.show();
         if (this.uiLayer) this.uiLayer.show();
-        if (this.svgContainer) this.svgContainer.style.visibility = 'visible';
         if (this.gameClockContainer) this.gameClockContainer.style.display = 'block';
         if (this.statesGuessedContainer) this.statesGuessedContainer.style.display = 'block';
         if (this.inputLabelContainer) this.inputLabelContainer.style.display = 'block';
@@ -332,14 +328,10 @@ export class GameView extends BaseGameView {
 
     /** Hide view */
     hide(): void {
-        this.backgroundLayer.hide();
-        this.layer.hide();
-        if (this.inputTextLayer) this.inputTextLayer.hide();
-        if (this.historyLayer) this.historyLayer.hide();
+        super.hide();
         if (this.multiplierLayer) this.multiplierLayer.hide();
         if (this.playerPointsLayer) this.playerPointsLayer.hide();
         if (this.uiLayer) this.uiLayer.hide();
-        if (this.svgContainer) this.svgContainer.style.visibility = 'hidden';
         if (this.gameClockContainer) this.gameClockContainer.style.display = 'none';
         if (this.statesGuessedContainer) this.statesGuessedContainer.style.display = 'none';
         if (this.inputLabelContainer) this.inputLabelContainer.style.display = 'none';

@@ -24,6 +24,9 @@ class Main {
     classicGameController: ClassicGameController | null = null;
     practiceGameController: PracticeGameController | null = null;
     crackedGameController: CrackedGameController | null = null;
+    resultsController: ResultsController | null = null;
+    private lastGameMode: "classic" | "practice" | "cracked" | null = null;
+    private menuIntroCompleted = false;
     classicResultsController: ClassicResultsController | null = null;
     practiceResultsController: PracticeResultsController | null = null;
     crackedResultsController: CrackedResultsController | null = null
@@ -100,7 +103,13 @@ class Main {
         }
         
         this.layer.destroyChildren(); // Clear the layer
-        this.menuController = new MenuController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
+        // Always mark intro as completed after first game
+        const skipIntro = this.menuIntroCompleted || skipMenuScreen !== "off";
+        this.menuController = new MenuController(
+            { switchToScreen: (screen) => this.switchToScreen(screen) },
+            this.stage,
+            { autoCompleteIntro: skipIntro },
+        );
         this.menuController.show();
         this.currentScreen = GameScreen.Menu;
         this.layer.draw();
@@ -143,7 +152,10 @@ class Main {
         }
         
         this.layer.destroyChildren();
+        this.menuIntroCompleted = true;
         
+        this.lastGameMode = mode;
+
         // Create the appropriate game controller based on mode
         if (mode === "practice") {
             this.practiceGameController = new PracticeGameController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
@@ -183,6 +195,10 @@ class Main {
         }
         
         this.layer.destroyChildren();
+        const restartMode = this.lastGameMode ?? "practice";
+        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage, restartMode);
+        this.resultsController.setScore(score);
+        this.resultsController.show();
         
         if (mode === 'practice') {
             this.practiceResultsController = new PracticeResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
