@@ -12,6 +12,9 @@
 import { State, stateNames, stateAdjacencyList } from './USMapData';
 
 export abstract class BaseGameModel {
+    //for getting the mode of game 
+    public abstract getMode(): 'classic' | 'practice' | 'cracked';
+
     // --- Responsive layout properties (shared UI configuration) ---
     baseBackgroundSrc: string = '';
     overlayBackgroundSrc: string = '';
