@@ -39,6 +39,7 @@ export abstract class BaseGameController {
 
     protected correctSound: HTMLAudioElement | null = null;
     protected wrongSound: HTMLAudioElement | null = null;
+    protected miniSound: HTMLAudioElement | null = null;
     
 
     constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
@@ -80,6 +81,10 @@ export abstract class BaseGameController {
             this.correctSound.load(); 
             this.wrongSound = new Audio('/audio/wrong.mp3');
             this.wrongSound.load();
+
+            // Preload Minigame Alert Audio
+            this.miniSound = new Audio('/dist/audio/mini-cue.mp3');
+            this.miniSound.load();
 
             // Initialize model with state codes discovered by the view
             this.model.initializeStates(stateCodes, '#adeaffff');
@@ -140,18 +145,30 @@ export abstract class BaseGameController {
             
             // 25% chance to trigger minigame every 20 seconds
             if (Math.random() < 0.25) {
-                this.triggerMinigame();
+                // play minigame audio cue 3 secs before minigame starts
+                if (this.miniSound) {
+                    this.miniSound.currentTime = 0;
+                    this.miniSound.play();
+                }
+                setTimeout(() => {
+                    this.triggerMinigame();    
+                }, 3000);
             }
         }, 20000);
 
-        // Bridge minigame: every 30 seconds with no randomness
         this.bridgeMinigameCheckInterval = setInterval(() => {
             if (this.model.getIsGamePaused()) return;
             if (this.model.getStatesGuessedCount() >= 50) return;
-
+            // play minigame audio cue 3 secs before minigame starts
+            if (this.miniSound) {
+                this.miniSound.currentTime = 0;
+                this.playMiniSound();
+            }
             // trigger bridge minigame every 50 seconds
-            this.triggerBridgeMinigame();
-        }, 50000);
+            setTimeout(() => {
+                this.triggerBridgeMinigame();
+            }, 3000);
+        }, 47000);
     }
 
     private triggerBridgeMinigame(): void {
@@ -265,6 +282,15 @@ export abstract class BaseGameController {
 
         this.correctSound.currentTime = 0; // rewind instantly
         this.correctSound.play().catch(err =>
+            console.warn('Could not play sound:', err)
+        );
+    }
+
+    // Play minigame audio cue
+    private playMiniSound() {
+        if (!this.miniSound) return;
+
+        this.miniSound.play().catch(err => 
             console.warn('Could not play sound:', err)
         );
     }
