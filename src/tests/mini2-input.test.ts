@@ -11,61 +11,15 @@ describe('basic input test', () => {
         model.hiddenIndices = [0,1,2,3];
         model.inputString = '';
 
-        import { describe, it, expect } from 'vitest';
-        import { GuessModel } from '../Minigames/Guess/guessModel';
+        model.handleInput('O');
+        model.handleInput('H'); 
 
-        describe('basic input test', () => {
-            it('should accept a letter and update inputString accordingly', () => {
+        // input: 'OH'
+        console.log('Input String:', model.inputString);
+        // expected: true
+        console.log('Full Path Valid:', model.isFullPathValid);
 
-                const model = new GuessModel();
-
-                // Mock a specific state for testing
-                model.targetStateName = 'TEXAS';
-                model.visibleIndices = new Set([1, 3, 4]); // E, A, S are visible
-                model.hiddenIndices = [0, 2]; // T, X are hidden
-                model.inputString = '';
-
-                // Initial state: _ E _ A S
-                // Hidden indices: 0 (T), 2 (X)
-
-                // User types 'T'
-                model.handleInput('T');
-                expect(model.inputString).toBe('T');
-                expect(model.isWon).toBe(false);
-
-                // User types 'X'
-                model.handleInput('X');
-                expect(model.inputString).toBe('TX');
-        
-                // Should be won now
-                expect(model.isWon).toBe(true);
-            });
-
-            it('should handle backspace correctly', () => {
-                const model = new GuessModel();
-                model.targetStateName = 'TEXAS';
-                model.visibleIndices = new Set([1, 3, 4]);
-                model.hiddenIndices = [0, 2];
-                model.inputString = '';
-
-                model.handleInput('T');
-                expect(model.inputString).toBe('T');
-
-                model.handleBackspace();
-                expect(model.inputString).toBe('');
-            });
-
-            it('should not allow input beyond hidden length', () => {
-                const model = new GuessModel();
-                model.targetStateName = 'TEXAS';
-                model.visibleIndices = new Set([1, 3, 4]);
-                model.hiddenIndices = [0, 2];
-                model.inputString = '';
-
-                model.handleInput('A');
-                model.handleInput('B');
-                model.handleInput('C'); // Should be ignored
-
-                expect(model.inputString).toBe('AB');
-            });
-        });
+        expect(model.inputString).toBe('OH');
+        expect(model.isFullPathValid).toBe(true);
+    });
+});
