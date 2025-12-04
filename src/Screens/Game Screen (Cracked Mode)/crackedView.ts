@@ -366,4 +366,5 @@ export class GameView extends BaseGameView {
         if (this.losePopupContainer) document.body.removeChild(this.losePopupContainer);
         if (this.clockAnimationFrameId) cancelAnimationFrame(this.clockAnimationFrameId);
     }
+
 }

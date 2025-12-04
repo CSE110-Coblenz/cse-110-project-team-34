@@ -73,6 +73,7 @@ export class GuessView {
         this.letterContainer.innerHTML = ''; // Clear
         
         const fullText = model.targetStateName; // Already uppercase
+        let inputIndex = 0;
 
         for (let i = 0; i < fullText.length; i++) {
             const char = fullText[i];
@@ -88,17 +89,28 @@ export class GuessView {
             let displayChar = '_';
             let color = 'white';
             
-            // If it's a completed index (user typed or logic revealed) -> Green
-            if (model.completedIndices.has(i)) {
-                displayChar = char;
-                color = '#00FF00'; // Green
-            } 
-            // If it was originally visible -> White
-            else if (model.visibleIndices.has(i)) {
+            if (model.visibleIndices.has(i)) {
+                // Originally visible letter
                 displayChar = char;
                 color = 'white';
+            } else {
+                // Hidden slot - check if user has typed a letter for this slot
+                if (inputIndex < model.inputString.length) {
+                    displayChar = model.inputString[inputIndex];
+                    color = '#FFFF00'; // Yellow for user input
+                    inputIndex++;
+                } else {
+                    displayChar = '_';
+                    color = 'white';
+                }
             }
-            // Else (Hidden and not typed) -> Underscore
+
+            // If won, turn everything green
+            if (model.isWon) {
+                color = '#00FF00';
+                // Ensure we show the correct letter if won
+                displayChar = char; 
+            }
 
             const letterDiv = document.createElement('div');
             letterDiv.textContent = displayChar;
