@@ -1,0 +1,21 @@
+{ 
+"compilerOptions": {
+   "target": "es2022",
+   "module": "commonjs",
+   "strict": true,
+   // Use correct ESM import behavior
+   "esModuleInterop": true,
+   "skipLibCheck": true,
+    // Allow JSON modules to be imported
+	"resolveJsonModule": true,
+	// Disallow JS files to be imported from TS and vice versa
+	"allowJs": false,
+	// Disallow features that require cross-file awareness
+	"isolatedModules": true,
+},
+ "scripts": {
+  "test": "vitest run"
+},
+ "include": ["src"],
+ "exclude": ["node_modules"]
+}

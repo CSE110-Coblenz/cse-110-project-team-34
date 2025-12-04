@@ -646,6 +646,10 @@ export abstract class BaseGameView {
         this.refreshHistory();
     }
 
+    getLayer(): Konva.Layer {
+        return this.layer;
+    }
+
     /** Show all layers */
     show(): void {
         this.backgroundLayer.show();
@@ -779,6 +783,13 @@ private injectPulseCSSWrong(): void {
         svg.addEventListener('animationend', handleAnimationEnd);
     }   
 
+    public getSvgElement(): SVGSVGElement | null {
+        return this.svgContainer ? this.svgContainer.querySelector('svg') : null;
+    }
+
+    public getStatePath(stateCode: string): SVGPathElement | undefined {
+        return this.svgPathElements.get(stateCode);
+    }
 
     /** Cleanup */
     destroy(): void {

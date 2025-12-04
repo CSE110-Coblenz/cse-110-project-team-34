@@ -15,6 +15,7 @@ import { applyCrackedModeDeveloperFlags, crackedModePreGuessAllExceptCA } from "
 export class GameController extends BaseGameController {
 	protected declare model: GameModel; // More specific type
 	protected declare view: GameView; // More specific type
+	protected gameClockIntervalId: number | null = null;
 
 	/** Factory method: Create Cracked Mode specific model */
 	protected createModel(): BaseGameModel {
@@ -50,8 +51,13 @@ export class GameController extends BaseGameController {
 			}
 		}
 
-		// Start game clock timer (Cracked Mode specific)
-		this.gameClockIntervalId = window.setInterval(() => {
+		// // Start game clock timer (Cracked Mode specific)
+		// this.gameClockIntervalId = window.setInterval(() => {
+		// 	this.handleGameTick();
+		// 	this.refreshView();
+		// }, 1000); // runs every 1000 ms (1 second)
+		// Start game clock timer
+		setInterval(() => {
 			this.handleGameTick();
 			this.refreshView();
 		}, 1000); // runs every 1000 ms (1 second)
