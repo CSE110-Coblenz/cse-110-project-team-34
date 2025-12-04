@@ -79,100 +79,43 @@ export class GuessModel {
         // Filter only letters
         if (!/^[a-zA-Z]$/.test(char)) return;
         
-        this.inputString += char.toUpperCase();
-        this.evaluatePaths();
+        // Only allow input if we haven't filled all hidden slots
+        if (this.inputString.length < this.hiddenIndices.length) {
+            this.inputString += char.toUpperCase();
+            this.checkWinCondition();
+        }
     }
 
     public handleBackspace(): void {
         if (this.isWon || this.timerSeconds <= 0) return;
         if (this.inputString.length > 0) {
             this.inputString = this.inputString.slice(0, -1);
-            this.evaluatePaths();
+            // No need to check win on backspace (can't win by removing letters)
         }
     }
 
-    private evaluatePaths(): void {
-        // Reset paths
-        let fullCursor = 0;
-        let missingCursor = 0;
-        let fullValid = true;
-        let missingValid = true;
+    private checkWinCondition(): void {
+        // Only check if we've filled all hidden slots
+        if (this.inputString.length !== this.hiddenIndices.length) {
+            return;
+        }
 
-        const input = this.inputString;
-        const target = this.targetStateName;
+        // Construct the full guessed word
+        let constructedWord = '';
+        let inputIndex = 0;
 
-        // Iterate through input to validate paths
-        for (let i = 0; i < input.length; i++) {
-            const char = input[i];
-
-            // Validate Full Path (skipping spaces in target)
-            if (fullValid) {
-                // Skip spaces in target
-                while (fullCursor < target.length && target[fullCursor] === ' ') {
-                    fullCursor++;
-                }
-                
-                if (fullCursor < target.length && char === target[fullCursor]) {
-                    fullCursor++;
-                } else {
-                    fullValid = false;
-                }
-            }
-
-            // Validate Missing Path
-            if (missingValid) {
-                if (missingCursor < this.hiddenIndices.length && char === target[this.hiddenIndices[missingCursor]]) {
-                    missingCursor++;
-                } else {
-                    missingValid = false;
-                }
+        for (let i = 0; i < this.targetStateName.length; i++) {
+            if (this.visibleIndices.has(i)) {
+                constructedWord += this.targetStateName[i];
+            } else {
+                // This slot was hidden, use the user's input
+                constructedWord += this.inputString[inputIndex];
+                inputIndex++;
             }
         }
 
-        this.isFullPathValid = fullValid;
-        this.isMissingPathValid = missingValid;
-        this.completedIndices.clear();
-
-        // Determine which indices are completed (Green)
-        // Prioritize Full Path if valid, else Missing Path
-        if (fullValid) {
-             // Mark 0 to fullCursor-1 as completed
-             // Need to map logical cursor back to actual indices (handling spaces)
-             let actualIndex = 0;
-             let logicalCount = 0;
-             while (actualIndex < target.length && logicalCount < fullCursor) {
-                 if (target[actualIndex] !== ' ') {
-                     logicalCount++;
-                 }
-                 this.completedIndices.add(actualIndex); // Mark spaces too if passed?
-                 // Actually, we just loop and mark up to current pos
-                 actualIndex++;
-             }
-             // If fullCursor points to end, we might missed marking the last char if loop condition
-             // Let's redo: simple slice
-             let processedChars = 0;
-             for(let i=0; i<target.length; i++) {
-                 if (target[i] === ' ') continue;
-                 if (processedChars < fullCursor) {
-                     this.completedIndices.add(i);
-                     processedChars++;
-                 }
-             }
-        } else if (missingValid) {
-            // Mark hiddenIndices[0] to hiddenIndices[missingCursor-1]
-            for (let i = 0; i < missingCursor; i++) {
-                this.completedIndices.add(this.hiddenIndices[i]);
-            }
-        }
-
-        // Check Win Condition
-        // Won if Full Path completes the word OR Missing Path completes all hidden
-        // Note: Full Path must match length (ignoring spaces)
-        const targetLenNoSpaces = target.replace(/ /g, '').length;
-        const fullWon = fullValid && fullCursor === targetLenNoSpaces;
-        const missingWon = missingValid && missingCursor === this.hiddenIndices.length;
-
-        if (fullWon || missingWon) {
+        // Check if it matches the target
+        if (constructedWord === this.targetStateName) {
             this.isWon = true;
         }
     }
