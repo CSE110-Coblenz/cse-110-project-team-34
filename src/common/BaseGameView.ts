@@ -50,6 +50,7 @@ export abstract class BaseGameView {
     
     protected onCorrectAnswerCallback: (() => void) | null = null;
     private onBackButtonClick: (() => void) | null = null;
+    private handleResizeBound: () => void;
     
     // Text input
     protected inputTextLayer!: Konva.Layer;
@@ -89,7 +90,8 @@ export abstract class BaseGameView {
         this.setOverlayMapOffsetY(this.model.overlayMapOffsetY);
         
         // Resize listener
-        window.addEventListener('resize', this.handleResize.bind(this));
+        this.handleResizeBound = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResizeBound);
     }
 
     /** Initialize and load assets in deterministic order */
@@ -498,9 +500,7 @@ export abstract class BaseGameView {
         const history = this.model.getInputHistory();
 
         // Recalculate font size to fit current clip width and longest entry
-        const clipWidth = (this.historyClipGroup as any).clipWidth
-            ? (this.historyClipGroup as any).clipWidth()
-            : 200;
+        const clipWidth = this.historyClipGroup.clipWidth() ?? 200;
         const padding = this.historyTextDisplay.padding() * 2;
         const usableWidth = Math.max(0, clipWidth - padding);
         const AVG_CHAR_WIDTH_FACTOR = 0.6;
@@ -518,8 +518,15 @@ export abstract class BaseGameView {
         const totalHeight = history.length * lineHeight;
         const maxScroll = Math.max(0, totalHeight - this.maxVisibleEntries * lineHeight);
 
-        // Auto-scroll only if currently at bottom
-        if (this.historyScrollY > maxScroll) {
+        // Auto-scroll logic:
+        // If we were previously at the bottom, maxScroll has likely increased by lineHeight (for 1 new entry).
+        // So current historyScrollY would be roughly (maxScroll - lineHeight).
+        // We check if we are within that range to snap to the new bottom.
+        const wasAtBottom = this.historyScrollY >= (maxScroll - lineHeight - 1);
+
+        if (wasAtBottom) {
+            this.historyScrollY = maxScroll;
+        } else if (this.historyScrollY > maxScroll) {
             this.historyScrollY = maxScroll;
         }
 
@@ -775,7 +782,6 @@ private injectPulseCSSWrong(): void {
         svg.classList.remove(className);
         void svg.offsetWidth;
         svg.classList.add(className);
-
         const handleAnimationEnd = () => {
             svg.classList.remove(className);
             svg.removeEventListener('animationend', handleAnimationEnd);
@@ -793,9 +799,12 @@ private injectPulseCSSWrong(): void {
 
     /** Cleanup */
     destroy(): void {
-        window.removeEventListener('resize', this.handleResize.bind(this));
+        if (this.handleResizeBound) {
+            window.removeEventListener('resize', this.handleResizeBound);
+        }
         if (this.svgContainer) {
             document.body.removeChild(this.svgContainer);
+            this.svgContainer = null;
         }
         if (this.backButtonElement) {
             this.backButtonElement.remove();
