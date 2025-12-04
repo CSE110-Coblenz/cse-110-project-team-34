@@ -144,7 +144,7 @@ export abstract class BaseGameController {
             if (this.model.getStatesGuessedCount() >= 50) return; // Game over
             
             // 25% chance to trigger minigame every 20 seconds
-            if (Math.random() < 0.25) {
+            // if (Math.random() < 0.25) {
                 // play minigame audio cue 3 secs before minigame starts
                 if (this.miniSound) {
                     this.miniSound.currentTime = 0;
@@ -152,8 +152,8 @@ export abstract class BaseGameController {
                 }
                 setTimeout(() => {
                     this.triggerMinigame();    
-                }, 3000);
-            }
+                }, 2450);
+            // }
         }, 20000);
 
         this.bridgeMinigameCheckInterval = setInterval(() => {
@@ -167,7 +167,7 @@ export abstract class BaseGameController {
             // trigger bridge minigame every 50 seconds
             setTimeout(() => {
                 this.triggerBridgeMinigame();
-            }, 3000);
+            }, 2550);
         }, 47000);
     }
 
