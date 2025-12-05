@@ -7,7 +7,7 @@ export class ResultsController {
 	private view: ResultsView;
 	private score: number = 0;
 
-	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
+	constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage, restartMode?: string) {
 		this.screenSwitcher = screenSwitcher;
 		this.view = new ResultsView(stage);
 		this.view.setOnBackButtonClick(() => {

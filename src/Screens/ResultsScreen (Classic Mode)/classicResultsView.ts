@@ -110,27 +110,27 @@ export class ResultsView {
         this.layer.draw();
     }
 
-    // // Update the score display
-    // updateScore(score: number) : void{
-    //     // For now, we just show "you win :)" regardless of score
-    //     // You can add score display later if needed
-    //     if(this.scoreText) {
-    //         this.scoreText.text(`Final Score: ${score}`);
-    //         this.layer.draw();
-    //         return;
-    //     }
-    //     this.scoreText = new Konva.Text({
-    //         x: this.stage.width() / 2 - 300,
-    //         y: this.stage.height() / 2 + 55,
-    //         text: `Final Score: ${score}`,
-    //         fontSize: 38,
-    //         fontFamily: "Times New Roman",
-    //         fill: "black",
-    //     });
+    // Update the score display
+    updateScore(score: number) : void{
+        // For now, we just show "you win :)" regardless of score
+        // You can add score display later if needed
+        if(this.scoreText) {
+            this.scoreText.text(`Final Score: ${score}`);
+            this.layer.draw();
+            return;
+        }
+        this.scoreText = new Konva.Text({
+            x: this.stage.width() / 2 - 300,
+            y: this.stage.height() / 2 + 55,
+            text: `Final Score: ${score}`,
+            fontSize: 38,
+            fontFamily: "Times New Roman",
+            fill: "black",
+        });
     
-    //     this.layer.add(this.scoreText); 
-    //     this.layer.draw();
-    // }
+        this.layer.add(this.scoreText); 
+        this.layer.draw();
+    }
 
     // show() method is required by ViewManager.ts
     show() {

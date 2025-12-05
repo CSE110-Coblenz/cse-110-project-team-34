@@ -234,7 +234,7 @@ export class MenuView {
 			
 			// Wait 1 second before starting the animation sequence
 			setTimeout(() => {
-				this.startAnimationSequence(blackScreen, width, height, stateText, ofText, panicText, stateTween, ofTween, panicTween);
+				this.startAnimationSequence();
 			}, 500);
 		});
 
@@ -706,13 +706,13 @@ export class MenuView {
 		};
 
 		let shouldRedrawOverlay = false;
-		if (!blackScreen.destroyed()) {
+		if (blackScreen) {
 			blackScreen.destroy();
 			this.blackScreen = null;
 			shouldRedrawOverlay = true;
 		}
 
-		if (this.startButton && !this.startButton.destroyed()) {
+		if (this.startButton) {
 			this.startButton.destroy();
 			this.startButton = null;
 			shouldRedrawOverlay = true;

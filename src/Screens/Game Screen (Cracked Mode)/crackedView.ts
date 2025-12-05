@@ -6,7 +6,7 @@
 import Konva from 'konva';
 import { BaseGameView } from '../../common/BaseGameView';
 import { GameModel } from './crackedModel';
-import { crackedModeShowGameClock, crackedModeShowInputLabel, crackedModeAllowStateClicking, crackedModeShowStatesGuessed } from '../../sandbox';
+import { devShowGameClock, devShowInputLabel, devAllowStateClicking, devShowStatesGuessed } from '../../sandbox';
 
 export class GameView extends BaseGameView {
     protected declare model: GameModel;
@@ -31,13 +31,13 @@ export class GameView extends BaseGameView {
         this.stage.add(this.uiLayer);
         
         // Initialize developer features if enabled
-        if (crackedModeShowGameClock) {
+        if (devShowGameClock) {
             this.initializeGameClock();
         }
-        if (crackedModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.initializeStatesGuessed();
         }
-        if (crackedModeShowInputLabel) {
+        if (devShowInputLabel) {
             this.initializeInputLabel();
         }
         
@@ -142,7 +142,7 @@ export class GameView extends BaseGameView {
             const leftOffset = window.innerWidth * 0.02;
             
             // Calculate position below game clock
-            const clockHeight = crackedModeShowGameClock && this.gameClockContainer 
+            const clockHeight = devShowGameClock && this.gameClockContainer 
                 ? this.gameClockContainer.offsetHeight 
                 : 0;
             const gap = 5; // 5px gap between clock and counter
@@ -174,7 +174,7 @@ export class GameView extends BaseGameView {
 
     /** Override: Set up click handlers if developer flag is enabled */
     protected setupStatePathInteraction(path: SVGPathElement, stateCode: string): void {
-        if (crackedModeAllowStateClicking) {
+        if (devAllowStateClicking) {
             path.addEventListener('click', () => this.handleStateClick(stateCode));
             path.style.cursor = 'pointer';
         }
@@ -185,10 +185,10 @@ export class GameView extends BaseGameView {
         super.handleResize();
         
         // Reposition developer elements if they exist
-        if (crackedModeShowGameClock) {
+        if (devShowGameClock) {
             this.repositionGameClock();
         }
-        if (crackedModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.repositionStatesGuessed();
         }
     }
@@ -198,7 +198,7 @@ export class GameView extends BaseGameView {
         super.updateInputTextDisplay();
         
         // Position the input label above the input box
-        if (crackedModeShowInputLabel && this.inputLabelContainer && this.belowOverlayImage) {
+        if (devShowInputLabel && this.inputLabelContainer && this.belowOverlayImage) {
             const below = this.belowOverlayImage;
             const imgX = below.x();
             const imgY = below.y();
@@ -227,12 +227,12 @@ export class GameView extends BaseGameView {
         super.updateViewFromModel();
         
         // Update game clock display (if enabled)
-        if (crackedModeShowGameClock) {
+        if (devShowGameClock) {
             this.refreshGameClock();
         }
 
         // Update states guessed display (if enabled)
-        if (crackedModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.refreshStatesGuessed();
         }
     }

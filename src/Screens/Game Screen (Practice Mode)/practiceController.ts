@@ -11,6 +11,7 @@ import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./practiceView";
 import { GameModel } from "./practiceModel";
 import { unlockClassicMode } from "../MenuScreen/MenuModel";
+import { applyDeveloperFlags, devPreGuessAllExceptCA } from "../../sandbox";
 
 export class GameController extends BaseGameController {
     protected declare model: GameModel; // More specific type
@@ -28,19 +29,25 @@ export class GameController extends BaseGameController {
 
     /** Hook: Practice Mode setup */
     protected setupModeSpecificFeatures(): void {
+        // Apply Developer flags
+        applyDeveloperFlags(this.model);
+
         // Ensure the initially selected state starts as "guessed" and remains that way
-        const initialCode = this.model.getCurrentStateCode();
-        if (initialCode) {
-            const initialState = this.model.getState(initialCode);
-            if (initialState && !initialState.getIsGuessed()) {
-                initialState.isGuessed(true).color('#00ff00');
-                // Also add the starting state to the guessed history list
-                const initialName = this.model.getStateName(initialCode);
-                if (initialName) {
-                    this.model.addToHistory(initialName.toLowerCase());
+        // (skip when the developer flag for pre-guessing all except CA is active)
+        if (!devPreGuessAllExceptCA) {
+            const initialCode = this.model.getCurrentStateCode();
+            if (initialCode) {
+                const initialState = this.model.getState(initialCode);
+                if (initialState && !initialState.getIsGuessed()) {
+                    initialState.isGuessed(true).color('#00ff00');
+                    // Also add the starting state to the guessed history list
+                    const initialName = this.model.getStateName(initialCode);
+                    if (initialName) {
+                        this.model.addToHistory(initialName.toLowerCase());
+                    }
+                    this.model.updateGuessableStates();
+                    this.refreshView();
                 }
-                this.model.updateGuessableStates();
-                this.refreshView();
             }
         }
         console.log('✓ Practice Mode controller initialized');

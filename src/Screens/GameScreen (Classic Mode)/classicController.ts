@@ -10,7 +10,7 @@ import { BaseGameModel } from "../../common/BaseGameModel";
 import { BaseGameView } from "../../common/BaseGameView";
 import { GameView } from "./classicView";
 import { GameModel } from "./classicModel";
-import { applyClassicModeDeveloperFlags, classicModePreGuessAllExceptCA } from "../../sandbox";
+import { applyDeveloperFlags, devPreGuessAllExceptCA } from "../../sandbox";
 import { unlockCrackedMode } from "../MenuScreen/MenuModel";
 
 export class GameController extends BaseGameController {
@@ -29,12 +29,12 @@ export class GameController extends BaseGameController {
 
 	/** Hook: Classic Mode specific setup */
 	protected setupModeSpecificFeatures(): void {
-		// Apply Classic Mode developer flags AFTER pickRandomState (which resets colors)
-		applyClassicModeDeveloperFlags(this.model);
+		// Apply Developer flags AFTER pickRandomState (which resets colors)
+		applyDeveloperFlags(this.model);
 
 		// Ensure the initially selected state starts as "guessed" and remains that way
 		// (skip when the developer flag for pre-guessing all except CA is active)
-		if (!classicModePreGuessAllExceptCA) {
+		if (!devPreGuessAllExceptCA) {
 			const initialCode = this.model.getCurrentStateCode();
 			if (initialCode) {
 				const initialState = this.model.getState(initialCode);

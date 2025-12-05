@@ -24,12 +24,11 @@ class Main {
     classicGameController: ClassicGameController | null = null;
     practiceGameController: PracticeGameController | null = null;
     crackedGameController: CrackedGameController | null = null;
-    resultsController: ResultsController | null = null;
     private lastGameMode: "classic" | "practice" | "cracked" | null = null;
     private menuIntroCompleted = false;
     classicResultsController: ClassicResultsController | null = null;
     practiceResultsController: PracticeResultsController | null = null;
-    crackedResultsController: CrackedResultsController | null = null
+    crackedResultsController: CrackedResultsController | null = null;
 
     constructor() {
         const stageWidth = window.innerWidth;
@@ -193,19 +192,19 @@ class Main {
         
         this.layer.destroyChildren();
         const restartMode = this.lastGameMode ?? "practice";
-        this.resultsController = new ResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage, restartMode);
-        this.resultsController.setScore(score);
-        this.resultsController.show();
         
         if (mode === 'practice') {
             this.practiceResultsController = new PracticeResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
             this.practiceResultsController.setScore(score);
+            this.practiceResultsController.show();
         } else if (mode === 'classic') {
             this.classicResultsController = new ClassicResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
             this.classicResultsController.setScore(score);
+            this.classicResultsController.show();
         } else if (mode === 'cracked') {
             this.crackedResultsController = new CrackedResultsController({ switchToScreen: (screen) => this.switchToScreen(screen) }, this.stage);
             this.crackedResultsController.setScore(score);
+            this.crackedResultsController.show();
         }   
         
         this.currentScreen = GameScreen.Results;

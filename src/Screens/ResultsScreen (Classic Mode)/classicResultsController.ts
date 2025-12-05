@@ -1,6 +1,6 @@
 import Konva from "konva";
 import type { ScreenSwitcher } from "../../types.ts";
-import { ResultsView } from "./classicResultsView.ts";
+import { ResultsView } from "./classicResultsView";
 
 export class ResultsController {
 	private screenSwitcher: ScreenSwitcher;
@@ -30,6 +30,6 @@ export class ResultsController {
 
 	setScore(score: number): void {
 		this.score = score;
-		//this.view.updateScore(score);
+		this.view.updateScore(score);
 	}
 }

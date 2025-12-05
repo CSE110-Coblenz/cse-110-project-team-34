@@ -8,7 +8,7 @@ export class MenuController {
     private switcher: ScreenSwitcher;
     private model: MenuModel;
 
-    constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage) {
+    constructor(screenSwitcher: ScreenSwitcher, stage: Konva.Stage, options?: { autoCompleteIntro?: boolean }) {
         this.switcher = screenSwitcher;
         this.model = new MenuModel();
         const { classicLocked, crackedLocked } = this.model.getLockedModes();

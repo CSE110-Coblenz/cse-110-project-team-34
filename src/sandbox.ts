@@ -28,29 +28,22 @@
 // Set to "classic", "practice", "cracked" to skip menu, or "off" to show menu
 export const skipMenuScreen: "off" | "classic" | "practice" | "cracked" = "off";
 
-// Classic Mode Developer Flags
-export const classicModeShowGameClock = true;
-export const classicModeShowInputLabel = true;
-export const classicModeAllowStateClicking = false;
-export const classicModeShowStatesGuessed = true;
-export const classicModePreGuessAllExceptCA = true;
-
-// Cracked Mode Developer Flags
-export const crackedModeShowGameClock = true;
-export const crackedModeShowInputLabel = true;
-export const crackedModeAllowStateClicking = true;
-export const crackedModeShowStatesGuessed = true;
-export const crackedModePreGuessAllExceptCA = true;
+// Global Developer Flags (Apply to all modes)
+export const devShowGameClock = false;
+export const devShowInputLabel = false;
+export const devAllowStateClicking = false;
+export const devShowStatesGuessed = false;
+export const devPreGuessAllExceptCA = true;
 
 import type { GameModel as ClassicGameModel } from './Screens/GameScreen (Classic Mode)/classicModel';
 
 /**
- * Apply developer flag logic to pre-guess states for Classic Mode
+ * Apply developer flag logic to pre-guess states for any Game Mode
  * Called after model initialization
  */
-export function applyClassicModeDeveloperFlags(gameModel: ClassicGameModel | any): void {
-    if (classicModePreGuessAllExceptCA) {
-        console.log('🎮 Classic Mode Developer Flag: Pre-guessing all states except California');
+export function applyDeveloperFlags(gameModel: ClassicGameModel | any): void {
+    if (devPreGuessAllExceptCA) {
+        console.log('🎮 Developer Flag: Pre-guessing all states except California');
         
         const states = gameModel.getAllStates();
         let count = 0;
@@ -65,45 +58,9 @@ export function applyClassicModeDeveloperFlags(gameModel: ClassicGameModel | any
         
         // Set the flag indicating first neighbor has been guessed
         // This allows the initial state (California) and all neighbors to become guessable
-        gameModel.setHasGuessedFirstNeighbor(true);
-        
-        // Update guessable states (this will make California and any unguessed neighbors red)
-        gameModel.updateGuessableStates();
-        
-        // Directly set California to red since it's the only unguessed state
-        const californiaState = gameModel.getState('ca');
-        if (californiaState && !californiaState.getIsGuessed()) {
-            californiaState.color('red');
-            console.log('✓ California set to red (guessable)');
+        if (typeof gameModel.setHasGuessedFirstNeighbor === 'function') {
+            gameModel.setHasGuessedFirstNeighbor(true);
         }
-        
-        console.log(`✅ Pre-guessed ${count} states (all except California)`);
-        console.log(`📊 States guessed count: ${gameModel.getStatesGuessedCount()}`);
-    }
-}
-
-/**
- * Apply developer flag logic to pre-guess states for Cracked Mode
- * Called after model initialization
- */
-export function applyCrackedModeDeveloperFlags(gameModel: ClassicGameModel | any): void {
-    if (crackedModePreGuessAllExceptCA) {
-        console.log('🎮 Cracked Mode Developer Flag: Pre-guessing all states except California');
-        
-        const states = gameModel.getAllStates();
-        let count = 0;
-        
-        states.forEach((state: any, code: string) => {
-            // Mark all states as guessed except California (CA)
-            if (code.toLowerCase() !== 'ca') {
-                state.isGuessed(true);
-                count++;
-            }
-        });
-        
-        // Set the flag indicating first neighbor has been guessed
-        // This allows the initial state (California) and all neighbors to become guessable
-        gameModel.setHasGuessedFirstNeighbor(true);
         
         // Update guessable states (this will make California and any unguessed neighbors red)
         gameModel.updateGuessableStates();

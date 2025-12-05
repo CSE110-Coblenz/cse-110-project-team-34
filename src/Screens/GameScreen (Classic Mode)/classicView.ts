@@ -6,7 +6,7 @@
 import Konva from 'konva';
 import { BaseGameView } from '../../common/BaseGameView';
 import { GameModel } from './classicModel';
-import { classicModeShowGameClock, classicModeShowInputLabel, classicModeAllowStateClicking, classicModeShowStatesGuessed } from '../../sandbox';
+import { devShowGameClock, devShowInputLabel, devAllowStateClicking, devShowStatesGuessed } from '../../sandbox';
 
 export class GameView extends BaseGameView {
     protected declare model: GameModel; // More specific type
@@ -38,13 +38,13 @@ export class GameView extends BaseGameView {
         this.initializePlayerPoints();
         
         // Initialize developer features if enabled
-        if (classicModeShowGameClock) {
+        if (devShowGameClock) {
             this.initializeGameClock();
         }
-        if (classicModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.initializeStatesGuessed();
         }
-        if (classicModeShowInputLabel) {
+        if (devShowInputLabel) {
             this.initializeInputLabel();
         }
         
@@ -53,7 +53,7 @@ export class GameView extends BaseGameView {
 
     /** Override: Set up click handlers if developer flag is enabled */
     protected setupStatePathInteraction(path: SVGPathElement, stateCode: string): void {
-        if (classicModeAllowStateClicking) {
+        if (devAllowStateClicking) {
             path.addEventListener('click', () => this.handleStateClick(stateCode));
             path.style.cursor = 'pointer';
         }
@@ -78,12 +78,12 @@ export class GameView extends BaseGameView {
         this.refreshPlayerPoints();
 
         // Update game clock display (if enabled)
-        if (classicModeShowGameClock) {
+        if (devShowGameClock) {
             this.refreshGameClock();
         }
 
         // Update states guessed display (if enabled)
-        if (classicModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.refreshStatesGuessed();
         }
     }
@@ -222,7 +222,7 @@ export class GameView extends BaseGameView {
             const leftOffset = window.innerWidth * 0.01;
             
             // Calculate position below game clock
-            const clockHeight = classicModeShowGameClock && this.gameClockContainer 
+            const clockHeight = devShowGameClock && this.gameClockContainer 
                 ? this.gameClockContainer.offsetHeight 
                 : 0;
             const gap = 5; // 5px gap between clock and counter
@@ -257,10 +257,10 @@ export class GameView extends BaseGameView {
         super.handleResize();
         
         // Reposition developer elements if they exist
-        if (classicModeShowGameClock) {
+        if (devShowGameClock) {
             this.repositionGameClock();
         }
-        if (classicModeShowStatesGuessed) {
+        if (devShowStatesGuessed) {
             this.repositionStatesGuessed();
         }
     }
@@ -270,7 +270,7 @@ export class GameView extends BaseGameView {
         super.updateInputTextDisplay();
         
         // Position the input label above the input box
-        if (classicModeShowInputLabel && this.inputLabelContainer && this.belowOverlayImage) {
+        if (devShowInputLabel && this.inputLabelContainer && this.belowOverlayImage) {
             const below = this.belowOverlayImage;
             const imgX = below.x();
             const imgY = below.y();
